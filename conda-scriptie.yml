@@ -1,0 +1,4 @@
+name: scriptie
+channels:
+  - defaults
+prefix: /home/lois/anaconda3/envs/scriptie
