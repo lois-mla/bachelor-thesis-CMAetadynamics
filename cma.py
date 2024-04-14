@@ -1,17 +1,29 @@
 import numpy as np
 from cmaes import CMA
+import matplotlib.pyplot as plt
 
-def quadratic(x1, x2):
-    return (x1 - 3) ** 2 + (10 * (x2 + 2)) ** 2
+def evaluate(x):
+    # run metadynamics simulation on these values & find the probability distribution
+    # P = ...
+    return np.sum(P * np.log(P))
 
 if __name__ == "__main__":
-    optimizer = CMA(mean=np.zeros(2), sigma=1.3)
+    optimizer = CMA(mean=np.zeros(50), sigma=1.3)
 
-    for generation in range(50):
+    generations = 50
+    for generation in range(generations):
         solutions = []
+        
+        # pick ideal population size!
         for _ in range(optimizer.population_size):
             x = optimizer.ask()
-            value = quadratic(x[0], x[1])
+
+            value = evaluate(x)
+
+            # append solutions by the point and its value according to 
+            # the evaluate function
             solutions.append((x, value))
-            print(f"#{generation} {value} (x1={x[0]}, x2 = {x[1]})")
+            
+            print(f"#{generation} {value} (x={x})")
+
         optimizer.tell(solutions)

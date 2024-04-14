@@ -63,24 +63,3 @@ simulation.reporters.append(StateDataReporter(stdout, 1000, step=True,
 
 # run the simulation, integrating the equations of motion for 10,000 time steps. 
 simulation.step(10000)
-
-# script = """
-# d: DISTANCE ATOMS=1,10
-# PRINT FILE=COLVAR STRIDE=10"""
-script = """
-# set up two variables for Phi and Psi dihedral angles 
-phi: TORSION ATOMS=5,7,9,15
-psi: TORSION ATOMS=7,9,15,17
-#
-# Activate metadynamics in phi and psi
-# depositing a Gaussian every 500 time steps,
-# with height equal to 1.2 kJ/mol,
-# and width 0.35 rad for both CVs. 
-#
-metad: METAD ARG=phi,psi PACE=500 HEIGHT=1.2 SIGMA=0.35,0.35 FILE=HILLS 
-
-# monitor the two variables and the metadynamics bias potential
-PRINT STRIDE=10 ARG=phi,psi,metad.bias FILE=COLVAR
-"""
-
-system.addForce(PlumedForce(script))
