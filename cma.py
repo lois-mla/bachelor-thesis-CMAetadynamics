@@ -1,29 +1,66 @@
 import numpy as np
 from cmaes import CMA
 import matplotlib.pyplot as plt
-
-
+import os
+import re
 
 class MolSimCMA:
-    def __innit__(self, default_sigma, resolution):
+    def __init__(self, default_sigma, resolution, template_hills_file):
         self.default_sigma = default_sigma
-        self.resolution = resolution 
+        self.resolution = resolution
+        self.template_hills_file = template_hills_file
     
-    def create_hills_file(self):
-        with open ("HILLS", "x") as hills:
-            # f.write("#! FIELDS time phi psi sigma_phi sigma_psi height biasf\n
-                #! SET multivariate false\n
-                #! SET kerneltype stretched-gaussian\n
-                #! SET min_phi -pi\n
-                #! SET max_phi pi\n
-                #! SET min_psi -pi\n
-                #! SET max_psi pi")
+    def create_template_hills(self):
+
+        if os.path.exists(self.template_hills_file):
+            os.remove(self.template_hills_file)
+
+        with open (self.template_hills_file, "x") as hills:
+            hills.write("#! FIELDS time phi psi sigma_phi sigma_psi height biasf\n\
+                        #! SET multivariate false\n\
+                        #! SET kerneltype stretched-gaussian\n\
+                        #! SET min_phi -pi\n\
+                        #! SET max_phi pi\n\
+                        #! SET min_psi -pi\n\
+                        #! SET max_psi pi\n")
 
             # need to generalize this later on!
-            for phi in range(-np.pi, np.pi, self.resolution):
-                for psi in range(-np.pi, np.pi, self.resolution):
-                    hills.write(f"")
+            height_index = 0
+            step_size = 2*np.pi / self.resolution
+            for phi in np.arange(-np.pi, np.pi, step_size):
+                for psi in np.arange(-np.pi, np.pi, step_size):
+                    hills.write(f"0 {phi} {psi} {self.default_sigma} {self.default_sigma} h{height_index} {1}\n")
+
+                    height_index += 1
                 
+    def update_hills(self, x, output_hills_file):
+        """
+        This function opens the template_hills_file,
+        replaces the template heights by corresponding vector values in x,
+        then writes this to the output_hills_file
+        """
+        # check if file exists?
+
+        # open template file and read contents
+        with open(self.template_hills_file, "r") as hills:
+            content = hills.read()
+            # print(content)
+
+        # replace h0,...,h100 by corresponding vector values
+        for i in range(100):
+
+            # ensure that the height placeholders always have 2 digits to replace them correctly
+            # content = content.replace(f'h{str(i).zfill(2)}', str(x[i]))
+            # content = content.replace(f'h{str(i)}', str(x[i]))
+            # print(content)
+            # content = content.replace(f'h{str(i).zfill(2)}', str(x[i]))
+            pattern = rf'\bh{i}\b'
+            content = re.sub(pattern, str(x[i]), content)
+            print(content)
+
+        # write to output_hills_file
+        with open(output_hills_file, "w") as hills:
+            hills.write(content)
 
     def run_simulation(x):
         """
@@ -66,5 +103,7 @@ class MolSimCMA:
 
 
 if __name__ == "__main__":
-   with open("HILLS") as file:
-       file
+    test = MolSimCMA(0.15, 10, "TEMPLATE_HILLS")
+    test.create_template_hills()
+    x = np.zeros(100)
+    test.update_hills(x, "HILLS")

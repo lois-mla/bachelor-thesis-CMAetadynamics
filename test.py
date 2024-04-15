@@ -15,11 +15,9 @@ forcefield = ForceField('amber14-all.xml', 'amber14/tip3pfb.xml')
 system = forcefield.createSystem(pdb.topology, nonbondedMethod=CutoffNonPeriodic,
         nonbondedCutoff=1*nanometer, constraints=HBonds)
 
-# script = """
-# d: DISTANCE ATOMS=1,10
-# PRINT FILE=COLVAR STRIDE=10"""
 script = """
 # set up two variables for Phi and Psi dihedral angles 
+# = the collective variables
 phi: TORSION ATOMS=5,7,9,15
 psi: TORSION ATOMS=7,9,15,17
 #
@@ -28,7 +26,7 @@ psi: TORSION ATOMS=7,9,15,17
 # with height equal to 1.2 kJ/mol,
 # and width 0.35 rad for both CVs. 
 #
-metad: METAD ARG=phi,psi PACE=500 HEIGHT=1.2 SIGMA=0.35,0.35 FILE=HILLS 
+metad: METAD ARG=phi,psi PACE=500 HEIGHT=1.2 SIGMA=0.15,0.15 FILE=HILLS
 
 # monitor the two variables and the metadynamics bias potential
 PRINT STRIDE=10 ARG=phi,psi,metad.bias FILE=COLVAR
