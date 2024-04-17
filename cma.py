@@ -3,12 +3,16 @@ from cmaes import CMA
 import matplotlib.pyplot as plt
 import os
 import re
+from bias import MolSim
 
 class MolSimCMA:
     def __init__(self, default_sigma, resolution, template_hills_file):
         self.default_sigma = default_sigma
         self.resolution = resolution
         self.template_hills_file = template_hills_file
+
+        # create template hills file
+        self.create_template_hills()
     
     def create_template_hills(self):
 
@@ -33,14 +37,12 @@ class MolSimCMA:
 
                     height_index += 1
                 
-    def update_hills(self, x, output_hills_file):
+    def update_hills(self, x):
         """
         This function opens the template_hills_file,
         replaces the template heights by corresponding vector values in x,
-        then writes this to the output_hills_file
+        then writes this to the HILLS file
         """
-        # check if file exists?
-
         # open template file and read contents
         with open(self.template_hills_file, "r") as hills:
             content = hills.read()
@@ -59,14 +61,16 @@ class MolSimCMA:
             print(content)
 
         # write to output_hills_file
-        with open(output_hills_file, "w") as hills:
+        with open("HILLS", "w") as hills:
             hills.write(content)
 
-    def run_simulation(x):
+    def run_simulation(self, x):
         """
         
         """
         # write x to HILLS file 
+        self.update_hills()
+        
 
         # use HILLS file to "hardcode bias" and run simulation
 
@@ -103,7 +107,9 @@ class MolSimCMA:
 
 
 if __name__ == "__main__":
+
+
     test = MolSimCMA(0.15, 10, "TEMPLATE_HILLS")
     test.create_template_hills()
     x = np.zeros(100)
-    test.update_hills(x, "HILLS")
+    test.update_hills(x)
