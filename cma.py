@@ -1,3 +1,9 @@
+from openmm.app import *
+from openmm import *
+from openmm.unit import *
+from sys import stdout
+from openmmplumed import PlumedForce
+import numpy as np
 import numpy as np
 from cmaes import CMA
 import matplotlib.pyplot as plt
@@ -50,15 +56,8 @@ class MolSimCMA:
 
         # replace h0,...,h100 by corresponding vector values
         for i in range(100):
-
-            # ensure that the height placeholders always have 2 digits to replace them correctly
-            # content = content.replace(f'h{str(i).zfill(2)}', str(x[i]))
-            # content = content.replace(f'h{str(i)}', str(x[i]))
-            # print(content)
-            # content = content.replace(f'h{str(i).zfill(2)}', str(x[i]))
             pattern = rf'\bh{i}\b'
             content = re.sub(pattern, str(x[i]), content)
-            print(content)
 
         # write to output_hills_file
         with open("HILLS", "w") as hills:
@@ -70,7 +69,14 @@ class MolSimCMA:
         """
         # write x to HILLS file 
         self.update_hills()
-        
+
+        forcefield = ForceField("amber14-all.xml", "amber14/tip3pfb.xml")
+        molsim = MolSim("alanine-dipeptide-implicit.pdb", forcefield)
+        molsim.add_bias()
+        molsim.run_sim()
+
+        prob = -1*np.mean(cvs[-5:-1])/1056
+        return prob
 
         # use HILLS file to "hardcode bias" and run simulation
 

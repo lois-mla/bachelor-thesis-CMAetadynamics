@@ -8,35 +8,37 @@ import matplotlib.pyplot as plt
 
 
 class MolSim:
-    def __init__(self, pdb_filename, forcefield):
+    def __init__(self, pdb_filename, forcefield, cvs, bias_script=None):
         # load PDB file into PDBFile object
         self.pdb = PDBFile(pdb_filename)
 
-        # set bias to be False
-        self.bias_script = False
-
-        # ? what are the amber files? do we want to be able to change those
         self.forcefield = forcefield
+        self.bias_script = bias_script
+        self.cvs = cvs
 
-    # have to generalize this later on
-    def add_bias(self):
-        self.bias_script = """
-        RESTART
-        # set up two variables for Phi and Psi dihedral angles 
-        # = the collective variables
-        phi: TORSION ATOMS=5,7,9,15
-        psi: TORSION ATOMS=7,9,15,17
-        #
-        # Activate metadynamics in phi and psi
-        # depositing a Gaussian every 500 time steps,
-        # with height equal to 1.2 kJ/mol,
-        # and width 0.35 rad for both CVs. 
-        #
-        metad: METAD ARG=phi,psi PACE=500000000 HEIGHT=0 SIGMA=0.15,0.15 FILE=HILLS
+        # set colvar_data to none, since the colvar file hasn't been made & read yet
+        self.colvar_data = None
+        self.simulation_ran = False
 
-        # monitor the two variables and the metadynamics bias potential
-        PRINT STRIDE=10 ARG=phi,psi,metad.bias FILE=COLVAR
-        """
+#     # have to generalize this later on
+#     def add_bias(self):
+#         self.bias_script = """
+#         RESTART
+#         # set up two variables for Phi and Psi dihedral angles 
+#         # = the collective variables
+#         phi: TORSION ATOMS=5,7,9,15
+#         psi: TORSION ATOMS=7,9,15,17
+#         #
+#         # Activate metadynamics in phi and psi
+#         # depositing a Gaussian every 500 time steps,
+#         # with height equal to 1.2 kJ/mol,
+#         # and width 0.35 rad for both CVs. 
+#         #
+#         metad: METAD ARG=phi,psi PACE=500000000 HEIGHT=0 SIGMA=0.15,0.15 FILE=HILLS
+
+#         # monitor the two variables and the metadynamics bias potential
+#         PRINT STRIDE=10 ARG=phi,psi,metad.bias FILE=COLVAR
+#         """
 
     # ! generalize later on
     def run_sim(self):
@@ -76,63 +78,21 @@ class MolSim:
         # run the simulation, integrating the equations of motion for 10,000 time steps.
         simulation.step(10000)
 
+        # load the data from the COLVAR file into the variable colvar_data
+        self.colvar_data = np.loadtxt('COLVAR')
+        self.simulation_ran = True
 
-    def read_colvar(self, file_path):
-        # check if it exists
-
-        data = []
-        with open(file_path, "r") as file:
-            # Skip header lines starting with "#!"
-            for line in file:
-                if not line.startswith("#!"):
-                    break
-
-            # Read data lines
-            for line in file:
-                line = line.strip()
-
-                if line:
-                    parts = line.split()
-
-                    if len(parts) >= 4:  # Ensure at least four columns are present
-                        time = float(parts[0])
-                        phi = float(parts[1])
-                        psi = float(parts[2])
-                        metad_bias = float(parts[3])
-                        data.append((time, phi, psi, metad_bias))
-                    else:
-                        print("Warning: Incomplete data line:", line)
-
-        return data
-
-        # Example usage
-        file_path = "your_covar_file.covar"
-        covar_data = read_covar_file(file_path)
-        print(covar_data)
-
-        # time = []
-        # variable1 = []
-        # variable2 = []
-        # with open(filename, 'r') as file:
-        #         for line in file:
-        #         if line.strip():  # Skip empty lines
-        #                 data = line.split()  # Assuming space-separated data
-        #                 time.append(float(data[0]))
-        #                 variable1.append(float(data[1]))
-        #                 variable2.append(float(data[2]))
-        # return time, variable1, variable2
 
     def plot_cvs(self):
-        
-        colvar_data = np.loadtxt('COLVAR')
+        # if the simulation hasn't been run yet; raise an error.
+        if not self.simulation_ran:
+            raise AttributeError("Please run the simultion first")
 
-        time = colvar_data[:, 0]
-        phi = colvar_data[:, 1]
-        psi = colvar_data[:, 2]
-        
-        # Plotting
-        plt.scatter(time, phi, label="phi", marker='x')
-        plt.scatter(time, psi, label="psi", marker='x')
+        time = self.colvar_data[:, 0]
+
+        for i, cv_label in enumerate(self.cvs):
+            cv = self.colvar_data[:, i+1]
+            plt.scatter(time, cv, label=cv_label, marker='x')
 
         # Adding labels and legend
         plt.xlabel("Time")
@@ -147,8 +107,27 @@ class MolSim:
 
 if __name__ == "__main__":
     forcefield = ForceField("amber14-all.xml", "amber14/tip3pfb.xml")
-    molsim = MolSim("alanine-dipeptide-implicit.pdb", forcefield)
-    molsim.add_bias()
+    bias_script = """
+        RESTART
+        # set up two variables for Phi and Psi dihedral angles 
+        # = the collective variables
+        phi: TORSION ATOMS=5,7,9,15
+        psi: TORSION ATOMS=7,9,15,17
+        #
+        # Activate metadynamics in phi and psi
+        # depositing a Gaussian every 500 time steps,
+        # with height equal to 1.2 kJ/mol,
+        # and width 0.35 rad for both CVs. 
+        #
+        metad: METAD ARG=phi,psi PACE=500000000 HEIGHT=0 SIGMA=0.15,0.15 FILE=HILLS
+
+        # monitor the two variables and the metadynamics bias potential
+        PRINT STRIDE=10 ARG=phi,psi,metad.bias FILE=COLVAR
+        """
+    cvs = ["phi", "psi"]
+
+    molsim = MolSim("alanine-dipeptide-implicit.pdb", forcefield, cvs, bias_script)
+
     molsim.run_sim()
 #     print(molsim.read_colvar("COLVAR"))
 #     print(np.loadtxt('COLVAR'))
