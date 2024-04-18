@@ -26,10 +26,10 @@ psi: TORSION ATOMS=7,9,15,17
 # with height equal to 1.2 kJ/mol,
 # and width 0.35 rad for both CVs. 
 #
-metad: METAD ARG=phi,psi PACE=500 HEIGHT=1.2 SIGMA=0.15,0.15 FILE=HILLS
+metad: METAD ARG=phi,psi PACE=500 HEIGHT=1.2 SIGMA=0.15,0.15 FILE=HILLS_compare
 
 # monitor the two variables and the metadynamics bias potential
-PRINT STRIDE=10 ARG=phi,psi,metad.bias FILE=COLVAR
+PRINT STRIDE=10 ARG=phi,psi,metad.bias FILE=COLVAR_compare
 """
 
 system.addForce(PlumedForce(script))

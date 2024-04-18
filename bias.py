@@ -21,26 +21,6 @@ class MolSim:
         self.colvar_data = None
         self.simulation_ran = False
 
-#     # have to generalize this later on
-#     def add_bias(self):
-#         self.bias_script = """
-#         RESTART
-#         # set up two variables for Phi and Psi dihedral angles 
-#         # = the collective variables
-#         phi: TORSION ATOMS=5,7,9,15
-#         psi: TORSION ATOMS=7,9,15,17
-#         #
-#         # Activate metadynamics in phi and psi
-#         # depositing a Gaussian every 500 time steps,
-#         # with height equal to 1.2 kJ/mol,
-#         # and width 0.35 rad for both CVs. 
-#         #
-#         metad: METAD ARG=phi,psi PACE=500000000 HEIGHT=0 SIGMA=0.15,0.15 FILE=HILLS
-
-#         # monitor the two variables and the metadynamics bias potential
-#         PRINT STRIDE=10 ARG=phi,psi,metad.bias FILE=COLVAR
-#         """
-
     # ! generalize later on
     def run_sim(self):
         # combine force field with molecular topology from PDB file to create a complete
@@ -74,6 +54,7 @@ class MolSim:
         # add another reporter to print out some basic information every 1000 time steps:
         # the current step index, the potential energy of the system, and the temperature
         # output file = stdout -> write the results to the console
+
         simulation.reporters.append(StateDataReporter(stdout, 1000, step=True, potentialEnergy=True, temperature=True))
 
         # run the simulation, integrating the equations of motion for 10,000 time steps.
@@ -105,8 +86,6 @@ class MolSim:
         plt.grid(True)
         plt.show()
 
-    def plot_energy(self):
-        "plumed sum_hills --hills HILLS"
 
 
 if __name__ == "__main__":
@@ -133,8 +112,7 @@ if __name__ == "__main__":
     molsim = MolSim("alanine-dipeptide-implicit.pdb", forcefield, cvs, bias_script)
 
     molsim.run_sim()
-#     print(molsim.read_colvar("COLVAR"))
-#     print(np.loadtxt('COLVAR'))
+
     molsim.plot_cvs()
 
 
