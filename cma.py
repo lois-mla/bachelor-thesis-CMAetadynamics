@@ -43,7 +43,7 @@ class MolSimCMA:
 
                     height_index += 1
                 
-    def update_hills(self, x):
+    def update_hills(self, x, gen, sample):
         """
         This function opens the template_hills_file,
         replaces the template heights by corresponding vector values in x,
@@ -59,36 +59,58 @@ class MolSimCMA:
             pattern = rf'\bh{i}\b'
             content = re.sub(pattern, str(x[i]), content)
 
-        # write to output_hills_file
-        with open("HILLS", "w") as hills:
+        # write to output_hills_file, specifying the generation & sample
+        with open(f"gen{gen}-sample{sample}-HILLS", "w") as hills:
             hills.write(content)
 
-    def run_simulation(self, x):
+    def run_simulation(self, x, gen, sample):
         """
         
         """
         # write x to HILLS file 
-        self.update_hills()
+        self.update_hills(x, gen, sample)
 
+        # ! move this away later on
         forcefield = ForceField("amber14-all.xml", "amber14/tip3pfb.xml")
-        molsim = MolSim("alanine-dipeptide-implicit.pdb", forcefield)
-        molsim.add_bias()
+        bias_script = f"""
+        RESTART
+        # set up two variables for Phi and Psi dihedral angles 
+        # = the collective variables
+        phi: TORSION ATOMS=5,7,9,15
+        psi: TORSION ATOMS=7,9,15,17
+        #
+        # Activate metadynamics in phi and psi
+        # depositing a Gaussian every 500 time steps,
+        # with height equal to 1.2 kJ/mol,
+        # and width 0.35 rad for both CVs. 
+        #
+        metad: METAD ARG=phi,psi PACE=500000000 HEIGHT=0 SIGMA=0.15,0.15 FILE=HILLS
+
+        # monitor the two variables and the metadynamics bias potential
+        PRINT STRIDE=10 ARG=phi,psi,metad.bias FILE=gen{gen}-sample{sample}-COLVAR
+        """
+        cvs = ["phi", "psi"]
+
+        molsim = MolSim("alanine-dipeptide-implicit.pdb", forcefield, cvs, bias_script, gen, sample)
+
         molsim.run_sim()
 
-        prob = -1*np.mean(cvs[-5:-1])/1056
-        return prob
+        phi = molsim.colvar_data[:, 1]
+        psi = molsim.colvar_data[:, 2]
+        bias = molsim.colvar_data[:, -1]
 
-        # use HILLS file to "hardcode bias" and run simulation
+        hist = np.histogram2d(phi, psi, bins=10, range=[[-np.pi, np.pi], [-np.pi, np.pi]], density=None, weights=bias)
 
-        # find P
+        print(hist[0].shape)
 
-        return P
+        return hist[0]
 
 
     def evaluate(self, P):
         # run metadynamics simulation on these values & find the probability distribution
         # P = ...
         return np.sum(P * np.log(P))
+    
     
     def CMA(self):
         optimizer = CMA(mean=np.zeros(100), sigma=0.2)
@@ -98,10 +120,12 @@ class MolSimCMA:
             solutions = []
             
             # pick ideal population size!
-            for _ in range(optimizer.population_size):
+            for sample in range(optimizer.population_size):
                 x = optimizer.ask()
 
-                value = self.evaluate(x)
+                prob_hist = self.run_simulation(x, generation, sample)
+
+                value = self.evaluate(prob_hist)
 
                 # append solutions by the point and its value according to 
                 # the evaluate function
@@ -112,10 +136,39 @@ class MolSimCMA:
             optimizer.tell(solutions)
 
 
+def plot_cvs(colvar_path, cvs):
+
+    colvar_data = np.loadtxt(colvar_path)
+
+    time = colvar_data[:, 0]
+
+    for i, cv_label in enumerate(cvs):
+        cv = colvar_data[:, i+1]
+        plt.scatter(time, cv, label=cv_label, marker='x')
+
+    # Adding labels and legend
+    plt.xlabel("Time")
+    plt.ylabel("Value")
+    plt.title("Collective Variables over Time")
+    plt.legend()
+
+    # Show plot
+    plt.grid(True)
+    plt.show()
+
+
+
 if __name__ == "__main__":
 
 
-    test = MolSimCMA(0.15, 10, "TEMPLATE_HILLS")
-    test.create_template_hills()
-    x = np.zeros(100)
-    test.update_hills(x)
+    # test = MolSimCMA(0.15, 10, "TEMPLATE_HILLS")
+    # test.CMA()
+
+
+    plot_cvs("gen1-sample1-COLVAR", ["phi", "psi"])
+
+
+    # test.create_template_hills()
+    # x = np.zeros(100)
+    # # test.update_hills(x)
+    # print(test.run_simulation(x))

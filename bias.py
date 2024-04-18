@@ -6,15 +6,16 @@ from openmmplumed import PlumedForce
 import numpy as np
 import matplotlib.pyplot as plt
 
-
 class MolSim:
-    def __init__(self, pdb_filename, forcefield, cvs, bias_script=None):
+    def __init__(self, pdb_filename, forcefield, cvs, bias_script=None, generation="", sample=""):
         # load PDB file into PDBFile object
         self.pdb = PDBFile(pdb_filename)
 
         self.forcefield = forcefield
         self.bias_script = bias_script
         self.cvs = cvs
+        self.generation = generation
+        self.sample = sample
 
         # set colvar_data to none, since the colvar file hasn't been made & read yet
         self.colvar_data = None
@@ -79,7 +80,7 @@ class MolSim:
         simulation.step(10000)
 
         # load the data from the COLVAR file into the variable colvar_data
-        self.colvar_data = np.loadtxt('COLVAR')
+        self.colvar_data = np.loadtxt(f'gen{self.generation}-sample{self.sample}-COLVAR')
         self.simulation_ran = True
 
 
@@ -104,6 +105,9 @@ class MolSim:
         plt.grid(True)
         plt.show()
 
+    def plot_energy(self):
+        "plumed sum_hills --hills HILLS"
+
 
 if __name__ == "__main__":
     forcefield = ForceField("amber14-all.xml", "amber14/tip3pfb.xml")
@@ -122,7 +126,7 @@ if __name__ == "__main__":
         metad: METAD ARG=phi,psi PACE=500000000 HEIGHT=0 SIGMA=0.15,0.15 FILE=HILLS
 
         # monitor the two variables and the metadynamics bias potential
-        PRINT STRIDE=10 ARG=phi,psi,metad.bias FILE=COLVAR
+        PRINT STRIDE=10 ARG=phi,psi,metad.bias FILE=COLVAR1
         """
     cvs = ["phi", "psi"]
 
