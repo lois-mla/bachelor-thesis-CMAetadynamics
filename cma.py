@@ -21,7 +21,8 @@ class MolSimCMA:
         # create template hills file
         self.create_template_hills()
     
-    # ! generalize later
+
+    # ! generalize later on
     def create_template_hills(self):
         """
         Creates a template hills file containing the default values for the time, the cvs, their 
@@ -48,6 +49,7 @@ class MolSimCMA:
                     hills.write(f"0 {phi} {psi} {self.default_sigma} {self.default_sigma} h{height_index} 1\n")
 
                     height_index += 1
+
                 
     def update_hills(self, x, gen, sample):
         """
@@ -72,7 +74,9 @@ class MolSimCMA:
 
     def run_simulation(self, x, gen, sample):
         """
-        
+        run the MD simulation, using a bias consisiting of SoG of the Gaussians described in the
+        HILLS file with heights of vector x. Return a histogram containing the measured values 
+        os phi and psi
         """
         # write x to HILLS file 
         self.update_hills(x, gen, sample)
@@ -106,19 +110,23 @@ class MolSimCMA:
         # get the data from the resulting COLVAR file
         phi = molsim.colvar_data[:, 1]
         psi = molsim.colvar_data[:, 2]
-        bias = molsim.colvar_data[:, -1]
+        # bias = molsim.colvar_data[:, -1]
 
         print("phi", phi)
         print("psi", psi)
-        print("bias", bias)
+        # print("bias", bias)
 
         # use this data to make a probability histogram
         hist = np.histogram2d(phi, psi, bins=10, range=[[-np.pi, np.pi], [-np.pi, np.pi]], density=None)
+        print("hist", hist)
 
         return hist[0]
 
 
     def evaluate(self, prob_hist):
+        """
+        evaluate the prob_hist based on the kl divergence, and return its absolute value
+        """
  
         hist_no_zeros = prob_hist + 1
 
@@ -135,9 +143,9 @@ class MolSimCMA:
     
 
     def evaluate2(self, prob_hist):
-
-        # for a uniform distribution, 
-
+        """
+        evaluate the prob_hist by finding the mean squared distance between it and a uniform histogram
+        """
         # find number of bins
         shape = prob_hist.shape
 
@@ -159,9 +167,11 @@ class MolSimCMA:
     
     
     def CMA(self):
-
+        """
+        execute CMA-ES
+        """
         # initialize optimizer
-        optimizer = CMA(mean=np.zeros(100), sigma=0.2)
+        optimizer = CMA(mean=np.ones(100), sigma=0.2)
 
         generations = 8
         for generation in range(generations):
@@ -190,6 +200,9 @@ class MolSimCMA:
 
 
 def plot_cvs(colvar_path, cvs):
+    """
+    plot cvs against time
+    """
 
     colvar_data = np.loadtxt(colvar_path)
 
@@ -210,6 +223,9 @@ def plot_cvs(colvar_path, cvs):
     plt.show()
 
 def plot_cvs_per_generation(gen, cvs, solutions=None):
+    """
+    plot all cvs in a given generation
+    """
     
     f, axes = plt.subplots(nrows=4, ncols=4, figsize=(12, 12), tight_layout=True)
 
@@ -240,7 +256,7 @@ def plot_cvs_per_generation(gen, cvs, solutions=None):
     # f.legend()
     # Show plot
     # f.grid(True)
-    plt.savefig(f'generation{gen}_mse.png', bbox_inches='tight')
+    plt.savefig(f'generation{gen}_starting_at_1.png', bbox_inches='tight')
     # plt.show()
 
 

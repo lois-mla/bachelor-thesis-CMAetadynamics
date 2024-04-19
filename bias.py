@@ -21,6 +21,7 @@ class MolSim:
         self.colvar_data = None
         self.simulation_ran = False
 
+
     # ! generalize later on
     def run_sim(self):
         # combine force field with molecular topology from PDB file to create a complete
@@ -66,6 +67,9 @@ class MolSim:
 
 
     def plot_cvs(self):
+        """
+        plot the cvs against the time using the colvar_data 
+        """
         # if the simulation hasn't been run yet; raise an error.
         if not self.simulation_ran:
             raise AttributeError("Please run the simultion first")
