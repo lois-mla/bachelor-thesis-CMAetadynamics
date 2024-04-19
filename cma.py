@@ -21,7 +21,13 @@ class MolSimCMA:
         # create template hills file
         self.create_template_hills()
     
+    # ! generalize later
     def create_template_hills(self):
+        """
+        Creates a template hills file containing the default values for the time, the cvs, their 
+        sigmas and the biasf. For heights h0,...,hN are added, which can be overwritten by values 
+        from an input vector.
+        """
 
         if os.path.exists(self.template_hills_file):
             os.remove(self.template_hills_file)
@@ -35,12 +41,11 @@ class MolSimCMA:
                         #! SET min_psi -pi\n\
                         #! SET max_psi pi\n")
 
-            # need to generalize this later on!
             height_index = 0
             step_size = 2*np.pi / self.resolution
             for phi in np.arange(-np.pi, np.pi, step_size):
                 for psi in np.arange(-np.pi, np.pi, step_size):
-                    hills.write(f"0 {phi} {psi} {self.default_sigma} {self.default_sigma} h{height_index} {1}\n")
+                    hills.write(f"0 {phi} {psi} {self.default_sigma} {self.default_sigma} h{height_index} 1\n")
 
                     height_index += 1
                 
@@ -122,11 +127,35 @@ class MolSimCMA:
         print("normalized_hist", normalized_hist)
         
         # calculate the kl divergence based on the provided probability histogram
-        div_kl = np.sum(normalized_hist * np.log(normalized_hist))
+        div_kl = np.sum(normalized_hist * np.log2(normalized_hist))
 
         print("div_kl", div_kl)
 
-        return div_kl
+        return abs(div_kl)
+    
+
+    def evaluate2(self, prob_hist):
+
+        # for a uniform distribution, 
+
+        # find number of bins
+        shape = prob_hist.shape
+
+        # The number of bins in each dimension is equal to the size of that dimension
+        num_bins = np.prod(shape)
+
+        # goal value
+        goal_value = 1/num_bins
+
+        # get normalized histogram
+        normalized_hist = preprocessing.normalize(prob_hist)
+
+
+        # calculate mean squared error
+        mse = np.square(np.subtract(normalized_hist,goal_value)).mean()
+
+        return mse
+
     
     
     def CMA(self):
@@ -147,12 +176,14 @@ class MolSimCMA:
                 prob_hist = self.run_simulation(x, generation, sample)
 
                 # evaluate the prob_hist with kl divergence
-                value = self.evaluate(prob_hist)
+                value = self.evaluate2(prob_hist)
 
                 # append solutions by both x and its kl div value
                 solutions.append((x, value))
                 
                 print(f"#{generation} {value} (x={x})")
+
+            plot_cvs_per_generation(generation, ["phi", "psi"], solutions)
 
             # tell the optimizer the solutions
             optimizer.tell(solutions)
@@ -178,6 +209,39 @@ def plot_cvs(colvar_path, cvs):
     plt.grid(True)
     plt.show()
 
+def plot_cvs_per_generation(gen, cvs, solutions=None):
+    
+    f, axes = plt.subplots(nrows=4, ncols=4, figsize=(12, 12), tight_layout=True)
+
+    for sample in range(16):
+
+        colvar_data = np.loadtxt(f"gen{gen}-sample{sample}-COLVAR")
+
+        time = colvar_data[:, 0]
+
+        ax = axes.flatten()[sample]
+        
+        for i, cv_label in enumerate(cvs):
+            cv = colvar_data[:, i+1]
+            ax.scatter(time, cv, label=cv_label, marker='x')
+
+        # Adding labels and legend
+        ax.set_xlabel("Time")
+        ax.set_ylabel("Value")
+        
+        if solutions:
+            ax.set_title(f"sample {sample}, kl_div = {solutions[sample][1]}")
+        else:
+            ax.set_title(f"sample {sample}")
+    
+
+    f.suptitle(f"generation {gen}")
+    
+    # f.legend()
+    # Show plot
+    # f.grid(True)
+    plt.savefig(f'generation{gen}_mse.png', bbox_inches='tight')
+    # plt.show()
 
 
 if __name__ == "__main__":
@@ -186,8 +250,13 @@ if __name__ == "__main__":
     test = MolSimCMA(0.15, 10, "TEMPLATE_HILLS")
     test.CMA()
 
+    # print(test.evaluate2(np.array([[2, 3], [3, 4]])))
+
 
     # plot_cvs("gen7-sample16-COLVAR", ["phi", "psi"])
+
+    # for gen in range(8):
+    #     plot_cvs_per_generation(gen, ["phi", "psi"])
 
 
     # test.create_template_hills()
