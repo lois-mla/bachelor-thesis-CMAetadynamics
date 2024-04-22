@@ -170,14 +170,14 @@ class MolSimCMA:
         execute CMA-ES
         """
         # initialize optimizer
-        optimizer = CMA(mean=np.ones(self.resolution**2)*6, sigma=2, bounds=None)
+        optimizer = CMA(mean=np.ones(self.resolution**2)*6, sigma=2, bounds=None, population_size=50)
 
         generations = 10
         for generation in range(generations):
             solutions = []
             
             for sample in range(optimizer.population_size):
-                print("pop size", optimizer.population_size)
+            # for sample in range(50):
 
                 # Check if files already exist and delete them if they do
                 if os.path.exists(f'gen{generation}-sample{sample}-COLVAR'):
@@ -200,6 +200,7 @@ class MolSimCMA:
                 print(f"#{generation} {value} (x={x})")
 
             plot_cvs_per_generation(generation, ["phi", "psi"], optimizer.population_size, solutions)
+            # plot_cvs_per_generation(generation, ["phi", "psi"], 50, solutions)
 
             # tell the optimizer the solutions
             optimizer.tell(solutions)
@@ -235,7 +236,7 @@ def plot_cvs_per_generation(gen, cvs, population_size, solutions=None):
     plot all cvs in a given generation
     """
     
-    f, axes = plt.subplots(nrows=4, ncols=4, figsize=(12, 12), tight_layout=True)
+    f, axes = plt.subplots(nrows=10, ncols=5, figsize=(12, 12), tight_layout=True)
 
     for sample in range(population_size):
 
@@ -261,7 +262,7 @@ def plot_cvs_per_generation(gen, cvs, population_size, solutions=None):
 
     f.suptitle(f"generation {gen}")
 
-    plt.savefig(f'images_res_10_sigma_2/generation{gen}.png', bbox_inches='tight')
+    plt.savefig(f'images_res_10_sigma_2_pop_size_50/generation{gen}.png', bbox_inches='tight')
 
 
 if __name__ == "__main__":
