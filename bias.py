@@ -24,42 +24,47 @@ class MolSim:
 
     # ! generalize later on
     def run_sim(self):
-        # combine force field with molecular topology from PDB file to create a complete
+                
+        # Combine force field with molecular topology from PDB file to create a complete 
         # mathematical description of the system (as a System object)
-        system = self.forcefield.createSystem(
-            self.pdb.topology, nonbondedMethod=CutoffNonPeriodic, nonbondedCutoff=1 * nanometer, constraints=HBonds
-        )
-
+        system = self.forcefield.createSystem(self.pdb.topology, nonbondedMethod=CutoffNonPeriodic,
+                                        nonbondedCutoff=1*nanometer, constraints=HBonds)
+        
         if self.bias_script:
             system.addForce(PlumedForce(self.bias_script))
 
-        # creates the integrator to use for advancing the equations of motion
-        # (in this case the LangevinMiddleIntegrator for Langevin dynamics)
-        integrator = LangevinMiddleIntegrator(300 * kelvin, 1 / picosecond, 0.004 * picoseconds)
 
-        # combine the molecular topology, system, and integrator to begin a new simulation
+        # Read MDP file and set parameters
+        integrator = LangevinMiddleIntegrator(300*kelvin, 1/picosecond, 0.002*picosecond)
+        integrator.setConstraintTolerance(0.00001)  # Set constraint tolerance based on MDP file
+        # integrator.setAngularMomentum(True)  # Set angular momentum removal based on MDP file
+
+        nsteps = 10000  # Set the number of steps based on MDP file
+        dt = 0.002  # Set the time step based on MDP file
+
+        # Combine the molecular topology, system, and integrator to begin a new simulation
         simulation = Simulation(self.pdb.topology, system, integrator)
 
-        # set initial atom positions
+        # Set initial atom positions
         simulation.context.setPositions(self.pdb.positions)
 
-        # tells OpenMM to perform a local energy minimization
+        # Perform a local energy minimization
         simulation.minimizeEnergy()
 
         # create reporter and append to list of reporters
         # the output is reported to the reporter during the simulation,
-        # this reporter writes the output to a PDB file
+        # this reporter writes the output to a PDB file 
         # (in this case every 1000 time steps)
-        simulation.reporters.append(PDBReporter("output.pdb", 1000))
+        simulation.reporters.append(PDBReporter('output.pdb', 1000))
 
         # add another reporter to print out some basic information every 1000 time steps:
         # the current step index, the potential energy of the system, and the temperature
         # output file = stdout -> write the results to the console
+        simulation.reporters.append(StateDataReporter(stdout, 1000, step=True,
+                potentialEnergy=True, temperature=True))
 
-        simulation.reporters.append(StateDataReporter(stdout, 1000, step=True, potentialEnergy=True, temperature=True))
-
-        # run the simulation, integrating the equations of motion for 10,000 time steps.
-        simulation.step(10000)
+        # Run the simulation
+        simulation.step(nsteps)
 
         # load the data from the COLVAR file into the variable colvar_data
         self.colvar_data = np.loadtxt(f'gen{self.generation}-sample{self.sample}-COLVAR')

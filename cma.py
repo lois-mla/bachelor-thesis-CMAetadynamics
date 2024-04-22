@@ -4,7 +4,6 @@ from openmm.unit import *
 from sys import stdout
 from openmmplumed import PlumedForce
 import numpy as np
-import numpy as np
 from cmaes import CMA
 import matplotlib.pyplot as plt
 import os
@@ -22,7 +21,7 @@ class MolSimCMA:
         self.create_template_hills()
     
 
-    # ! generalize later on
+    # ! generalize later on for other cvs
     def create_template_hills(self):
         """
         Creates a template hills file containing the default values for the time, the cvs, their 
@@ -63,7 +62,7 @@ class MolSimCMA:
             # print(content)
 
         # replace h0,...,h100 by corresponding vector values
-        for i in range(100):
+        for i in range(self.resolution**2):
             pattern = rf'\bh{i}\b'
             content = re.sub(pattern, str(x[i]), content)
 
@@ -72,6 +71,7 @@ class MolSimCMA:
             hills.write(content)
 
 
+    # ! generalize later on for other cvs
     def run_simulation(self, x, gen, sample):
         """
         run the MD simulation, using a bias consisiting of SoG of the Gaussians described in the
@@ -117,7 +117,7 @@ class MolSimCMA:
         # print("bias", bias)
 
         # use this data to make a probability histogram
-        hist = np.histogram2d(phi, psi, bins=10, range=[[-np.pi, np.pi], [-np.pi, np.pi]], density=None)
+        hist = np.histogram2d(phi, psi, bins=self.resolution, range=[[-np.pi, np.pi], [-np.pi, np.pi]], density=None)
         print("hist", hist)
 
         return hist[0]
@@ -165,19 +165,25 @@ class MolSimCMA:
         return mse
 
     
-    
     def CMA(self):
         """
         execute CMA-ES
         """
         # initialize optimizer
-        optimizer = CMA(mean=np.ones(100), sigma=0.2)
+        optimizer = CMA(mean=np.ones(self.resolution**2)*6, sigma=2, bounds=None)
 
-        generations = 8
+        generations = 10
         for generation in range(generations):
             solutions = []
             
             for sample in range(optimizer.population_size):
+                print("pop size", optimizer.population_size)
+
+                # Check if files already exist and delete them if they do
+                if os.path.exists(f'gen{generation}-sample{sample}-COLVAR'):
+                    os.remove(f'gen{generation}-sample{sample}-COLVAR')
+                if os.path.exists(f'gen{generation}-sample{sample}-HILLS'):
+                    os.remove(f'gen{generation}-sample{sample}-HILLS')
 
                 # ask optimizer for a sample
                 x = optimizer.ask()
@@ -193,10 +199,11 @@ class MolSimCMA:
                 
                 print(f"#{generation} {value} (x={x})")
 
-            plot_cvs_per_generation(generation, ["phi", "psi"], solutions)
+            plot_cvs_per_generation(generation, ["phi", "psi"], optimizer.population_size, solutions)
 
             # tell the optimizer the solutions
             optimizer.tell(solutions)
+            
 
 
 def plot_cvs(colvar_path, cvs):
@@ -222,14 +229,15 @@ def plot_cvs(colvar_path, cvs):
     plt.grid(True)
     plt.show()
 
-def plot_cvs_per_generation(gen, cvs, solutions=None):
+
+def plot_cvs_per_generation(gen, cvs, population_size, solutions=None):
     """
     plot all cvs in a given generation
     """
     
     f, axes = plt.subplots(nrows=4, ncols=4, figsize=(12, 12), tight_layout=True)
 
-    for sample in range(16):
+    for sample in range(population_size):
 
         colvar_data = np.loadtxt(f"gen{gen}-sample{sample}-COLVAR")
 
@@ -239,7 +247,7 @@ def plot_cvs_per_generation(gen, cvs, solutions=None):
         
         for i, cv_label in enumerate(cvs):
             cv = colvar_data[:, i+1]
-            ax.scatter(time, cv, label=cv_label, marker='x')
+            ax.scatter(time, cv, s=1, label=cv_label, marker='x')
 
         # Adding labels and legend
         ax.set_xlabel("Time")
@@ -252,30 +260,11 @@ def plot_cvs_per_generation(gen, cvs, solutions=None):
     
 
     f.suptitle(f"generation {gen}")
-    
-    # f.legend()
-    # Show plot
-    # f.grid(True)
-    plt.savefig(f'generation{gen}_starting_at_1.png', bbox_inches='tight')
-    # plt.show()
+
+    plt.savefig(f'images_res_10_sigma_2/generation{gen}.png', bbox_inches='tight')
 
 
 if __name__ == "__main__":
 
-
     test = MolSimCMA(0.15, 10, "TEMPLATE_HILLS")
     test.CMA()
-
-    # print(test.evaluate2(np.array([[2, 3], [3, 4]])))
-
-
-    # plot_cvs("gen7-sample16-COLVAR", ["phi", "psi"])
-
-    # for gen in range(8):
-    #     plot_cvs_per_generation(gen, ["phi", "psi"])
-
-
-    # test.create_template_hills()
-    # x = np.zeros(100)
-    # # test.update_hills(x)
-    # print(test.run_simulation(x))
