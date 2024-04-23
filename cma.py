@@ -10,6 +10,8 @@ import os
 import re
 from bias import MolSim
 from sklearn import preprocessing
+import matplotlib.cm as cm
+import matplotlib.patches as patches
 
 class MolSimCMA:
     def __init__(self, default_sigma, resolution, template_hills_file):
@@ -170,9 +172,9 @@ class MolSimCMA:
         execute CMA-ES
         """
         # initialize optimizer
-        optimizer = CMA(mean=np.ones(self.resolution**2)*6, sigma=2, bounds=None, population_size=50)
+        optimizer = CMA(mean=np.zeros(self.resolution**2), sigma=2.5, bounds=np.array([(0, 15)] * self.resolution**2))
 
-        generations = 10
+        generations = 40
         for generation in range(generations):
             solutions = []
             
@@ -199,7 +201,7 @@ class MolSimCMA:
                 
                 print(f"#{generation} {value} (x={x})")
 
-            plot_cvs_per_generation(generation, ["phi", "psi"], optimizer.population_size, solutions)
+            plot_cvs_and_heights(generation, ["phi", "psi"], optimizer.population_size, solutions)
             # plot_cvs_per_generation(generation, ["phi", "psi"], 50, solutions)
 
             # tell the optimizer the solutions
@@ -236,19 +238,20 @@ def plot_cvs_per_generation(gen, cvs, population_size, solutions=None):
     plot all cvs in a given generation
     """
     
-    f, axes = plt.subplots(nrows=10, ncols=5, figsize=(12, 12), tight_layout=True)
+    f, axes = plt.subplots(nrows=4, ncols=5, figsize=(12, 12), tight_layout=True)
 
     for sample in range(population_size):
 
         colvar_data = np.loadtxt(f"gen{gen}-sample{sample}-COLVAR")
 
-        time = colvar_data[:, 0]
+        # time = colvar_data[:, 0]
 
         ax = axes.flatten()[sample]
         
-        for i, cv_label in enumerate(cvs):
-            cv = colvar_data[:, i+1]
-            ax.scatter(time, cv, s=1, label=cv_label, marker='x')
+        # for i, cv_label in enumerate(cvs):
+        cv0 = colvar_data[:, 1]
+        cv1 = colvar_data[:, 2]
+        ax.scatter(cv0, cv1, s=1, marker='x')
 
         # Adding labels and legend
         ax.set_xlabel("Time")
@@ -262,10 +265,64 @@ def plot_cvs_per_generation(gen, cvs, population_size, solutions=None):
 
     f.suptitle(f"generation {gen}")
 
-    plt.savefig(f'images_res_10_sigma_2_pop_size_50/generation{gen}.png', bbox_inches='tight')
+    plt.savefig(f'images_cvs_against_each_other/generation{gen}.png', bbox_inches='tight')
+
+
+def plot_cvs_per_generation_1plot(gen, cvs, population_size, solutions=None):
+
+    colors = cm.rainbow(np.linspace(0, 1, population_size))
+
+    for sample in range(population_size):
+
+        colvar_data = np.loadtxt(f"gen{gen}-sample{sample}-COLVAR")
+
+        # for i, cv_label in enumerate(cvs):
+        phi = colvar_data[:, 1]
+        psi = colvar_data[:, 2]
+        plt.scatter(phi, psi, s=1, marker='x', color=colors[sample])
+
+    # Adding labels and legend
+    plt.xlabel("psi")
+    plt.ylabel("phi")
+
+    if solutions:
+        plt.title(f"evaluate = {np.mean([s[1] for s in solutions])}")
+
+    plt.savefig(f'plots_all_samples_in_1_plot/generation{gen}.png', bbox_inches='tight')
+
+
+
+def plot_cvs_and_heights(gen, cvs, population_size, solutions=None):
+
+    colors = cm.rainbow(np.linspace(0, 1, population_size))
+
+    for sample in range(population_size):
+
+        colvar_data = np.loadtxt(f"gen{gen}-sample{sample}-COLVAR")
+
+        # for i, cv_label in enumerate(cvs):
+        phi = colvar_data[:, 1]
+        psi = colvar_data[:, 2]
+        height = colvar_data[:, 3]
+        plt.scatter(phi, psi, s=1, marker='x', color=colors[sample])
+        # patches.Circle((phi, psi), radius=height)
+
+    # Adding labels and legend
+    plt.xlabel("phi")
+    plt.ylabel("psi")
+
+    if solutions:
+        plt.title(f"evaluate = {np.mean([s[1] for s in solutions])}")
+
+    plt.savefig(f'plots_all_samples_in_1_plot/generation{gen}.png', bbox_inches='tight')
+
+
+
 
 
 if __name__ == "__main__":
 
-    test = MolSimCMA(0.15, 10, "TEMPLATE_HILLS")
+    # test = MolSimCMA(0.15, 10, "TEMPLATE_HILLS")
+    test = MolSimCMA(0.3, 20, "TEMPLATE_HILLS")
+
     test.CMA()

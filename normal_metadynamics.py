@@ -6,6 +6,8 @@ from openmmplumed import PlumedForce
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+from sklearn import preprocessing
+
 
 # Check if COLVAR_compare exists and delete it if it does
 if os.path.exists('COLVAR_compare'):
@@ -21,21 +23,155 @@ def plot_cvs(colvar_path, cvs):
 
     colvar_data = np.loadtxt(colvar_path)
 
-    time = colvar_data[:, 0]
+    # time = colvar_data[:, 0]
 
-    for i, cv_label in enumerate(cvs):
-        cv = colvar_data[:, i+1]
-        plt.scatter(time, cv, s=2, label=cv_label, marker='x')
+    # for i, cv_label in enumerate(cvs):
+    #     cv = colvar_data[:, i+1]
+    #     plt.scatter(time, cv, s=2, label=cv_label, marker='x')
+
+    phi = colvar_data[:, 1]
+    psi = colvar_data[:, 2]
+
+    plt.scatter(phi, psi, s=1, marker='x')
+
 
     # Adding labels and legend
     plt.xlabel("Time")
     plt.ylabel("Value")
     plt.title("Collective Variables over Time")
-    plt.legend()
+    # plt.legend()
 
     # Show plot
     plt.grid(True)
-    plt.show()
+
+    plt.savefig("test_phi_psi", bbox_inches='tight')
+
+    # plt.show()
+
+
+def plot_cvs_time(colvar_path, cvs):
+    """
+    plot cvs against time
+    """
+
+    colvar_data = np.loadtxt(colvar_path)
+
+    time = colvar_data[:, 0]
+
+    for i, cv_label in enumerate(cvs):
+        cv = colvar_data[:, i+1]
+        plt.scatter(time, cv, s=1, label=cv_label, marker='x')
+
+
+    # Adding labels and legend
+    plt.xlabel("Time")
+    plt.ylabel("Value")
+    plt.title("Collective Variables over Time")
+    # plt.legend()
+
+    # Show plot
+    plt.grid(True)
+
+    plt.savefig("test_cvs_time", bbox_inches='tight')
+
+    # plt.show()
+
+# def evaluate(colvar_path, begin_index, end_index):
+#     """
+#     evaluate the prob_hist based on the kl divergence, and return its absolute value
+#     """
+#     colvar_data = np.loadtxt(colvar_path)
+
+#     # get the data from the resulting COLVAR file
+#     phi = colvar_data[:, 1][begin_index : end_index]
+#     psi = colvar_data[:, 2][begin_index : end_index]
+#     # bias = molsim.colvar_data[:, -1]
+
+#     # print("phi", phi)
+#     # print("psi", psi)
+#     # print("bias", bias)
+
+#     # use this data to make a probability histogram
+#     hist = np.histogram2d(phi, psi, bins=10, range=[[-np.pi, np.pi], [-np.pi, np.pi]], density=None)
+#     # print("hist", hist)
+
+#     prob_hist = hist[0]
+
+#     hist_no_zeros = prob_hist + 1
+
+#     normalized_hist = preprocessing.normalize(hist_no_zeros)
+
+#     print("normalized_hist", normalized_hist)
+    
+#     # calculate the kl divergence based on the provided probability histogram
+#     div_kl = np.sum(normalized_hist * np.log2(normalized_hist))
+
+#     # print("div_kl", div_kl)
+
+#     return abs(div_kl)
+
+def get_prob_hist_from_colvar(colvar_path, begin_index, end_index):
+
+    colvar_data = np.loadtxt(colvar_path)
+
+    # get the data from the resulting COLVAR file
+    phi = colvar_data[:, 1][begin_index : end_index]
+    psi = colvar_data[:, 2][begin_index : end_index]
+    # bias = molsim.colvar_data[:, -1]
+
+    # print("phi", phi)
+    # print("psi", psi)
+    # print("bias", bias)
+
+    # use this data to make a probability histogram
+    hist = np.histogram2d(phi, psi, bins=10, range=[[-np.pi, np.pi], [-np.pi, np.pi]], density=None)
+    # print("hist", hist)
+
+    prob_hist = hist[0]
+
+    return prob_hist
+
+
+def evaluate(prob_hist):
+    """
+    evaluate the prob_hist based on the kl divergence, and return its absolute value
+    """
+
+    hist_no_zeros = prob_hist + 1
+
+    normalized_hist = preprocessing.normalize(hist_no_zeros)
+
+    # print("normalized_hist", normalized_hist)
+    
+    # calculate the kl divergence based on the provided probability histogram
+    div_kl = np.sum(normalized_hist * np.log2(normalized_hist))
+
+    # print("div_kl", div_kl)
+
+    return abs(div_kl)
+
+
+def evaluate2(prob_hist):
+    """
+    evaluate the prob_hist by finding the mean squared distance between it and a uniform histogram
+    """
+    # find number of bins
+    shape = prob_hist.shape
+
+    # The number of bins in each dimension is equal to the size of that dimension
+    num_bins = np.prod(shape)
+
+    # goal value
+    goal_value = 1/num_bins
+
+    # get normalized histogram
+    normalized_hist = preprocessing.normalize(prob_hist)
+
+
+    # calculate mean squared error
+    mse = np.square(np.subtract(normalized_hist,goal_value)).mean()
+
+    return mse
 
 
 
@@ -73,7 +209,7 @@ integrator = LangevinMiddleIntegrator(300*kelvin, 1/picosecond, 0.002*picosecond
 integrator.setConstraintTolerance(0.00001)  # Set constraint tolerance based on MDP file
 # integrator.setAngularMomentum(True)  # Set angular momentum removal based on MDP file
 
-nsteps = 2500000  # Set the number of steps based on MDP file
+nsteps = 1500000  # Set the number of steps based on MDP file
 dt = 0.002  # Set the time step based on MDP file
 
 # Combine the molecular topology, system, and integrator to begin a new simulation
@@ -101,5 +237,17 @@ simulation.reporters.append(StateDataReporter(stdout, 1000, step=True,
 simulation.step(nsteps)
 
 plot_cvs("COLVAR_compare", ["phi", "psi"])
+plot_cvs_time("COLVAR_compare", ["phi", "psi"])
+
+begin_hist = get_prob_hist_from_colvar("COLVAR_compare", 1, 50000)
+middle_hist = get_prob_hist_from_colvar("COLVAR_compare", 100000, 500000)
+end_hist = get_prob_hist_from_colvar("COLVAR_compare", 1000000, 15000000)
+
+print("eval: 1-50000", evaluate(begin_hist))
+print("eval2: 1-50000", evaluate2(begin_hist))
+print("eval: 100000-500000", evaluate(middle_hist))
+print("eval2: 100000-500000", evaluate2(middle_hist))
+print("eval: 1000000-1500000", evaluate(end_hist))
+print("eval2: 1000000-1500000", evaluate2(end_hist))
 
 
