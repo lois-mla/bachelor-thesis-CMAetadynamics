@@ -39,8 +39,8 @@ class MolSim:
         integrator.setConstraintTolerance(0.00001)  # Set constraint tolerance based on MDP file
         # integrator.setAngularMomentum(True)  # Set angular momentum removal based on MDP file
 
-        nsteps = 10000  # Set the number of steps based on MDP file
-        dt = 0.002  # Set the time step based on MDP file
+        nsteps = 10000  # Set the number of steps 
+        dt = 0.002  # Set the time step 
 
         # Combine the molecular topology, system, and integrator to begin a new simulation
         simulation = Simulation(self.pdb.topology, system, integrator)
@@ -78,6 +78,7 @@ class MolSim:
         # if the simulation hasn't been run yet; raise an error.
         if not self.simulation_ran:
             raise AttributeError("Please run the simultion first")
+
 
         time = self.colvar_data[:, 0]
 
