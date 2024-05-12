@@ -1,0 +1,226 @@
+REMARK   1 CREATED WITH OPENMM 8.1.1, 2024-05-12
+MODEL        1
+HETATM    1  H1  ACE A   1       1.336   2.903   0.901  1.00  0.00           H  
+HETATM    2  CH3 ACE A   1       1.855   3.212   1.808  1.00  0.00           C  
+HETATM    3  H2  ACE A   1       2.484   2.446   2.262  1.00  0.00           H  
+HETATM    4  H3  ACE A   1       1.088   3.544   2.508  1.00  0.00           H  
+HETATM    5  C   ACE A   1       2.747   4.397   1.547  1.00  0.00           C  
+HETATM    6  O   ACE A   1       2.565   5.383   2.253  1.00  0.00           O  
+ATOM      7  N   ALA A   2       3.645   4.199   0.593  1.00  0.00           N  
+ATOM      8  H   ALA A   2       3.752   3.273   0.204  1.00  0.00           H  
+ATOM      9  CA  ALA A   2       4.555   5.248   0.073  1.00  0.00           C  
+ATOM     10  HA  ALA A   2       4.096   6.228  -0.057  1.00  0.00           H  
+ATOM     11  CB  ALA A   2       5.717   5.472   1.111  1.00  0.00           C  
+ATOM     12  HB1 ALA A   2       6.157   4.521   1.412  1.00  0.00           H  
+ATOM     13  HB2 ALA A   2       6.471   6.139   0.693  1.00  0.00           H  
+ATOM     14  HB3 ALA A   2       5.323   5.925   2.020  1.00  0.00           H  
+ATOM     15  C   ALA A   2       5.150   4.795  -1.284  1.00  0.00           C  
+ATOM     16  O   ALA A   2       4.839   3.658  -1.691  1.00  0.00           O  
+HETATM   17  N   NME A   3       5.967   5.641  -1.891  1.00  0.00           N  
+HETATM   18  H   NME A   3       6.092   6.582  -1.548  1.00  0.00           H  
+HETATM   19  C   NME A   3       6.678   5.290  -3.174  1.00  0.00           C  
+HETATM   20  H1  NME A   3       7.225   6.132  -3.597  1.00  0.00           H  
+HETATM   21  H2  NME A   3       7.392   4.478  -3.033  1.00  0.00           H  
+HETATM   22  H3  NME A   3       5.900   4.982  -3.873  1.00  0.00           H  
+TER      23      NME A   3
+ENDMDL
+MODEL        2
+HETATM    1  H1  ACE A   1       0.962   3.151   0.526  1.00  0.00           H  
+HETATM    2  CH3 ACE A   1       0.897   4.238   0.482  1.00  0.00           C  
+HETATM    3  H2  ACE A   1       0.908   4.583   1.516  1.00  0.00           H  
+HETATM    4  H3  ACE A   1      -0.035   4.514  -0.011  1.00  0.00           H  
+HETATM    5  C   ACE A   1       2.074   4.925  -0.169  1.00  0.00           C  
+HETATM    6  O   ACE A   1       1.806   5.738  -1.045  1.00  0.00           O  
+ATOM      7  N   ALA A   2       3.270   4.595   0.295  1.00  0.00           N  
+ATOM      8  H   ALA A   2       3.252   3.846   0.972  1.00  0.00           H  
+ATOM      9  CA  ALA A   2       4.527   5.184  -0.158  1.00  0.00           C  
+ATOM     10  HA  ALA A   2       4.567   5.333  -1.237  1.00  0.00           H  
+ATOM     11  CB  ALA A   2       4.743   6.528   0.487  1.00  0.00           C  
+ATOM     12  HB1 ALA A   2       4.836   6.426   1.568  1.00  0.00           H  
+ATOM     13  HB2 ALA A   2       5.644   6.997   0.093  1.00  0.00           H  
+ATOM     14  HB3 ALA A   2       3.903   7.171   0.225  1.00  0.00           H  
+ATOM     15  C   ALA A   2       5.704   4.243  -0.013  1.00  0.00           C  
+ATOM     16  O   ALA A   2       5.584   3.128   0.531  1.00  0.00           O  
+HETATM   17  N   NME A   3       6.892   4.701  -0.563  1.00  0.00           N  
+HETATM   18  H   NME A   3       6.727   5.544  -1.094  1.00  0.00           H  
+HETATM   19  C   NME A   3       8.201   4.022  -0.536  1.00  0.00           C  
+HETATM   20  H1  NME A   3       8.030   2.948  -0.611  1.00  0.00           H  
+HETATM   21  H2  NME A   3       8.916   4.250  -1.327  1.00  0.00           H  
+HETATM   22  H3  NME A   3       8.614   4.271   0.442  1.00  0.00           H  
+TER      23      NME A   3
+ENDMDL
+MODEL        3
+HETATM    1  H1  ACE A   1       6.053   7.518  -2.886  1.00  0.00           H  
+HETATM    2  CH3 ACE A   1       5.738   7.510  -1.843  1.00  0.00           C  
+HETATM    3  H2  ACE A   1       4.668   7.718  -1.861  1.00  0.00           H  
+HETATM    4  H3  ACE A   1       6.313   8.242  -1.277  1.00  0.00           H  
+HETATM    5  C   ACE A   1       5.871   6.141  -1.173  1.00  0.00           C  
+HETATM    6  O   ACE A   1       6.962   5.524  -1.328  1.00  0.00           O  
+ATOM      7  N   ALA A   2       4.798   5.704  -0.518  1.00  0.00           N  
+ATOM      8  H   ALA A   2       3.985   6.303  -0.513  1.00  0.00           H  
+ATOM      9  CA  ALA A   2       4.670   4.371   0.016  1.00  0.00           C  
+ATOM     10  HA  ALA A   2       5.109   3.734  -0.753  1.00  0.00           H  
+ATOM     11  CB  ALA A   2       5.567   4.287   1.331  1.00  0.00           C  
+ATOM     12  HB1 ALA A   2       5.059   4.780   2.159  1.00  0.00           H  
+ATOM     13  HB2 ALA A   2       5.734   3.272   1.691  1.00  0.00           H  
+ATOM     14  HB3 ALA A   2       6.503   4.831   1.199  1.00  0.00           H  
+ATOM     15  C   ALA A   2       3.219   3.940   0.296  1.00  0.00           C  
+ATOM     16  O   ALA A   2       2.257   4.670  -0.000  1.00  0.00           O  
+HETATM   17  N   NME A   3       3.060   2.761   0.968  1.00  0.00           N  
+HETATM   18  H   NME A   3       3.923   2.354   1.300  1.00  0.00           H  
+HETATM   19  C   NME A   3       1.764   2.345   1.461  1.00  0.00           C  
+HETATM   20  H1  NME A   3       1.917   1.521   2.158  1.00  0.00           H  
+HETATM   21  H2  NME A   3       1.314   3.132   2.065  1.00  0.00           H  
+HETATM   22  H3  NME A   3       0.985   2.051   0.757  1.00  0.00           H  
+TER      23      NME A   3
+ENDMDL
+MODEL        4
+HETATM    1  H1  ACE A   1       8.771   4.866  -0.021  1.00  0.00           H  
+HETATM    2  CH3 ACE A   1       7.911   4.349  -0.447  1.00  0.00           C  
+HETATM    3  H2  ACE A   1       7.895   3.512   0.251  1.00  0.00           H  
+HETATM    4  H3  ACE A   1       8.197   4.093  -1.467  1.00  0.00           H  
+HETATM    5  C   ACE A   1       6.665   5.200  -0.282  1.00  0.00           C  
+HETATM    6  O   ACE A   1       6.881   6.404  -0.223  1.00  0.00           O  
+ATOM      7  N   ALA A   2       5.470   4.614  -0.274  1.00  0.00           N  
+ATOM      8  H   ALA A   2       5.486   3.607  -0.356  1.00  0.00           H  
+ATOM      9  CA  ALA A   2       4.146   5.301  -0.062  1.00  0.00           C  
+ATOM     10  HA  ALA A   2       4.301   5.969   0.785  1.00  0.00           H  
+ATOM     11  CB  ALA A   2       3.720   6.078  -1.342  1.00  0.00           C  
+ATOM     12  HB1 ALA A   2       3.681   5.376  -2.175  1.00  0.00           H  
+ATOM     13  HB2 ALA A   2       2.785   6.621  -1.211  1.00  0.00           H  
+ATOM     14  HB3 ALA A   2       4.492   6.830  -1.508  1.00  0.00           H  
+ATOM     15  C   ALA A   2       3.076   4.178   0.317  1.00  0.00           C  
+ATOM     16  O   ALA A   2       3.462   2.998   0.356  1.00  0.00           O  
+HETATM   17  N   NME A   3       1.828   4.569   0.485  1.00  0.00           N  
+HETATM   18  H   NME A   3       1.539   5.533   0.402  1.00  0.00           H  
+HETATM   19  C   NME A   3       0.729   3.634   0.803  1.00  0.00           C  
+HETATM   20  H1  NME A   3       0.493   3.809   1.852  1.00  0.00           H  
+HETATM   21  H2  NME A   3      -0.219   3.818   0.296  1.00  0.00           H  
+HETATM   22  H3  NME A   3       1.041   2.596   0.690  1.00  0.00           H  
+TER      23      NME A   3
+ENDMDL
+MODEL        5
+HETATM    1  H1  ACE A   1       4.377   7.940  -2.957  1.00  0.00           H  
+HETATM    2  CH3 ACE A   1       3.917   7.030  -2.573  1.00  0.00           C  
+HETATM    3  H2  ACE A   1       3.728   6.390  -3.435  1.00  0.00           H  
+HETATM    4  H3  ACE A   1       2.961   7.318  -2.135  1.00  0.00           H  
+HETATM    5  C   ACE A   1       4.780   6.197  -1.812  1.00  0.00           C  
+HETATM    6  O   ACE A   1       5.989   6.137  -2.010  1.00  0.00           O  
+ATOM      7  N   ALA A   2       4.279   5.511  -0.790  1.00  0.00           N  
+ATOM      8  H   ALA A   2       3.276   5.401  -0.775  1.00  0.00           H  
+ATOM      9  CA  ALA A   2       4.990   4.433   0.002  1.00  0.00           C  
+ATOM     10  HA  ALA A   2       5.527   3.779  -0.685  1.00  0.00           H  
+ATOM     11  CB  ALA A   2       5.959   5.103   0.978  1.00  0.00           C  
+ATOM     12  HB1 ALA A   2       5.370   5.713   1.663  1.00  0.00           H  
+ATOM     13  HB2 ALA A   2       6.530   4.341   1.508  1.00  0.00           H  
+ATOM     14  HB3 ALA A   2       6.760   5.615   0.445  1.00  0.00           H  
+ATOM     15  C   ALA A   2       3.902   3.719   0.757  1.00  0.00           C  
+ATOM     16  O   ALA A   2       2.692   4.065   0.541  1.00  0.00           O  
+HETATM   17  N   NME A   3       4.227   2.810   1.685  1.00  0.00           N  
+HETATM   18  H   NME A   3       5.112   2.324   1.703  1.00  0.00           H  
+HETATM   19  C   NME A   3       3.162   2.298   2.501  1.00  0.00           C  
+HETATM   20  H1  NME A   3       3.293   1.269   2.837  1.00  0.00           H  
+HETATM   21  H2  NME A   3       3.030   2.903   3.398  1.00  0.00           H  
+HETATM   22  H3  NME A   3       2.205   2.345   1.982  1.00  0.00           H  
+TER      23      NME A   3
+ENDMDL
+MODEL        6
+HETATM    1  H1  ACE A   1       2.449   2.987  -2.567  1.00  0.00           H  
+HETATM    2  CH3 ACE A   1       3.040   2.214  -2.077  1.00  0.00           C  
+HETATM    3  H2  ACE A   1       3.626   1.800  -2.897  1.00  0.00           H  
+HETATM    4  H3  ACE A   1       2.335   1.589  -1.528  1.00  0.00           H  
+HETATM    5  C   ACE A   1       3.999   2.665  -1.089  1.00  0.00           C  
+HETATM    6  O   ACE A   1       4.710   1.843  -0.561  1.00  0.00           O  
+ATOM      7  N   ALA A   2       4.096   3.968  -0.775  1.00  0.00           N  
+ATOM      8  H   ALA A   2       3.417   4.535  -1.263  1.00  0.00           H  
+ATOM      9  CA  ALA A   2       4.717   4.491   0.370  1.00  0.00           C  
+ATOM     10  HA  ALA A   2       4.490   3.888   1.249  1.00  0.00           H  
+ATOM     11  CB  ALA A   2       6.254   4.488   0.217  1.00  0.00           C  
+ATOM     12  HB1 ALA A   2       6.574   5.475  -0.118  1.00  0.00           H  
+ATOM     13  HB2 ALA A   2       6.843   4.379   1.127  1.00  0.00           H  
+ATOM     14  HB3 ALA A   2       6.599   3.691  -0.442  1.00  0.00           H  
+ATOM     15  C   ALA A   2       4.201   5.962   0.590  1.00  0.00           C  
+ATOM     16  O   ALA A   2       3.115   6.333   0.092  1.00  0.00           O  
+HETATM   17  N   NME A   3       5.001   6.910   1.161  1.00  0.00           N  
+HETATM   18  H   NME A   3       5.958   6.636   1.333  1.00  0.00           H  
+HETATM   19  C   NME A   3       4.643   8.298   1.473  1.00  0.00           C  
+HETATM   20  H1  NME A   3       4.308   8.665   0.503  1.00  0.00           H  
+HETATM   21  H2  NME A   3       3.726   8.437   2.045  1.00  0.00           H  
+HETATM   22  H3  NME A   3       5.400   8.934   1.934  1.00  0.00           H  
+TER      23      NME A   3
+ENDMDL
+MODEL        7
+HETATM    1  H1  ACE A   1       0.047   5.000   0.044  1.00  0.00           H  
+HETATM    2  CH3 ACE A   1       1.015   5.476  -0.120  1.00  0.00           C  
+HETATM    3  H2  ACE A   1       1.069   6.503   0.240  1.00  0.00           H  
+HETATM    4  H3  ACE A   1       1.168   5.571  -1.194  1.00  0.00           H  
+HETATM    5  C   ACE A   1       2.077   4.742   0.607  1.00  0.00           C  
+HETATM    6  O   ACE A   1       1.885   4.003   1.566  1.00  0.00           O  
+ATOM      7  N   ALA A   2       3.258   4.937   0.039  1.00  0.00           N  
+ATOM      8  H   ALA A   2       3.254   5.507  -0.794  1.00  0.00           H  
+ATOM      9  CA  ALA A   2       4.551   4.271   0.243  1.00  0.00           C  
+ATOM     10  HA  ALA A   2       4.582   4.082   1.316  1.00  0.00           H  
+ATOM     11  CB  ALA A   2       4.492   2.947  -0.483  1.00  0.00           C  
+ATOM     12  HB1 ALA A   2       4.116   3.042  -1.502  1.00  0.00           H  
+ATOM     13  HB2 ALA A   2       5.423   2.390  -0.590  1.00  0.00           H  
+ATOM     14  HB3 ALA A   2       3.767   2.286  -0.007  1.00  0.00           H  
+ATOM     15  C   ALA A   2       5.771   5.094  -0.285  1.00  0.00           C  
+ATOM     16  O   ALA A   2       5.620   6.271  -0.694  1.00  0.00           O  
+HETATM   17  N   NME A   3       6.968   4.563  -0.297  1.00  0.00           N  
+HETATM   18  H   NME A   3       7.275   3.859   0.360  1.00  0.00           H  
+HETATM   19  C   NME A   3       8.073   5.025  -1.050  1.00  0.00           C  
+HETATM   20  H1  NME A   3       9.017   4.507  -0.880  1.00  0.00           H  
+HETATM   21  H2  NME A   3       7.814   4.902  -2.102  1.00  0.00           H  
+HETATM   22  H3  NME A   3       8.247   6.066  -0.777  1.00  0.00           H  
+TER      23      NME A   3
+ENDMDL
+MODEL        8
+HETATM    1  H1  ACE A   1       1.739   4.812   3.495  1.00  0.00           H  
+HETATM    2  CH3 ACE A   1       2.726   4.753   3.037  1.00  0.00           C  
+HETATM    3  H2  ACE A   1       3.052   3.746   3.296  1.00  0.00           H  
+HETATM    4  H3  ACE A   1       3.298   5.453   3.645  1.00  0.00           H  
+HETATM    5  C   ACE A   1       2.720   5.005   1.526  1.00  0.00           C  
+HETATM    6  O   ACE A   1       1.629   5.278   0.983  1.00  0.00           O  
+ATOM      7  N   ALA A   2       3.852   4.864   0.921  1.00  0.00           N  
+ATOM      8  H   ALA A   2       4.633   4.479   1.433  1.00  0.00           H  
+ATOM      9  CA  ALA A   2       4.064   4.844  -0.526  1.00  0.00           C  
+ATOM     10  HA  ALA A   2       3.366   4.207  -1.069  1.00  0.00           H  
+ATOM     11  CB  ALA A   2       4.050   6.345  -0.954  1.00  0.00           C  
+ATOM     12  HB1 ALA A   2       5.005   6.835  -0.768  1.00  0.00           H  
+ATOM     13  HB2 ALA A   2       3.898   6.399  -2.032  1.00  0.00           H  
+ATOM     14  HB3 ALA A   2       3.253   6.979  -0.564  1.00  0.00           H  
+ATOM     15  C   ALA A   2       5.421   4.163  -0.834  1.00  0.00           C  
+ATOM     16  O   ALA A   2       6.191   3.834   0.012  1.00  0.00           O  
+HETATM   17  N   NME A   3       5.866   4.267  -2.102  1.00  0.00           N  
+HETATM   18  H   NME A   3       5.155   4.605  -2.735  1.00  0.00           H  
+HETATM   19  C   NME A   3       7.146   3.897  -2.678  1.00  0.00           C  
+HETATM   20  H1  NME A   3       7.575   3.069  -2.114  1.00  0.00           H  
+HETATM   21  H2  NME A   3       7.043   3.746  -3.752  1.00  0.00           H  
+HETATM   22  H3  NME A   3       7.706   4.804  -2.448  1.00  0.00           H  
+TER      23      NME A   3
+ENDMDL
+MODEL        9
+HETATM    1  H1  ACE A   1       2.558   3.113   2.844  1.00  0.00           H  
+HETATM    2  CH3 ACE A   1       3.187   3.953   3.139  1.00  0.00           C  
+HETATM    3  H2  ACE A   1       4.187   3.533   3.244  1.00  0.00           H  
+HETATM    4  H3  ACE A   1       2.754   4.277   4.086  1.00  0.00           H  
+HETATM    5  C   ACE A   1       3.272   4.943   2.026  1.00  0.00           C  
+HETATM    6  O   ACE A   1       2.462   5.885   1.999  1.00  0.00           O  
+ATOM      7  N   ALA A   2       4.046   4.558   1.018  1.00  0.00           N  
+ATOM      8  H   ALA A   2       4.532   3.700   1.237  1.00  0.00           H  
+ATOM      9  CA  ALA A   2       4.188   5.197  -0.348  1.00  0.00           C  
+ATOM     10  HA  ALA A   2       3.209   5.417  -0.772  1.00  0.00           H  
+ATOM     11  CB  ALA A   2       4.830   6.594  -0.182  1.00  0.00           C  
+ATOM     12  HB1 ALA A   2       5.824   6.432   0.235  1.00  0.00           H  
+ATOM     13  HB2 ALA A   2       4.797   7.220  -1.073  1.00  0.00           H  
+ATOM     14  HB3 ALA A   2       4.215   7.174   0.506  1.00  0.00           H  
+ATOM     15  C   ALA A   2       5.027   4.288  -1.299  1.00  0.00           C  
+ATOM     16  O   ALA A   2       5.230   3.125  -0.995  1.00  0.00           O  
+HETATM   17  N   NME A   3       5.451   4.796  -2.455  1.00  0.00           N  
+HETATM   18  H   NME A   3       5.291   5.784  -2.595  1.00  0.00           H  
+HETATM   19  C   NME A   3       6.018   3.998  -3.470  1.00  0.00           C  
+HETATM   20  H1  NME A   3       6.934   3.465  -3.216  1.00  0.00           H  
+HETATM   21  H2  NME A   3       5.317   3.243  -3.827  1.00  0.00           H  
+HETATM   22  H3  NME A   3       6.200   4.487  -4.426  1.00  0.00           H  
+TER      23      NME A   3
+ENDMDL

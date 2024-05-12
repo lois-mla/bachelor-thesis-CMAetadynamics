@@ -23,7 +23,7 @@ class MolSim:
 
 
     # ! generalize later on
-    def run_sim(self):
+    def run_sim(self, path):
                 
         # Combine force field with molecular topology from PDB file to create a complete 
         # mathematical description of the system (as a System object)
@@ -55,7 +55,7 @@ class MolSim:
         # the output is reported to the reporter during the simulation,
         # this reporter writes the output to a PDB file 
         # (in this case every 1000 time steps)
-        simulation.reporters.append(PDBReporter('output.pdb', 1000))
+        simulation.reporters.append(PDBReporter(f'{path}/output.pdb', 1000))
 
         # add another reporter to print out some basic information every 1000 time steps:
         # the current step index, the potential energy of the system, and the temperature
@@ -67,7 +67,7 @@ class MolSim:
         simulation.step(nsteps)
 
         # load the data from the COLVAR file into the variable colvar_data
-        self.colvar_data = np.loadtxt(f'gen{self.generation}-sample{self.sample}-COLVAR')
+        self.colvar_data = np.loadtxt(f'{path}/COLVAR/gen{self.generation}-sample{self.sample}-COLVAR')
         self.simulation_ran = True
 
 

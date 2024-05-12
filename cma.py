@@ -5,6 +5,7 @@ from sys import stdout
 from openmmplumed import PlumedForce
 import numpy as np
 from cmaes import CMA
+from cmaes import SepCMA
 import matplotlib.pyplot as plt
 import os
 import re
@@ -13,18 +14,28 @@ from sklearn import preprocessing
 import matplotlib.cm as cm
 # import matplotlib.patches as patches
 from matplotlib.patches import Circle
-from matplotlib.animation import FuncAnimation
+# from matplotlib.animation import FuncAnimation
+import matplotlib.animation as animation 
+from IPython import display 
+import shutil
 
 class MolSimCMA:
-    def __init__(self, default_sigma, resolution, template_hills_file):
-        self.default_sigma = default_sigma
-        self.resolution = resolution
-        self.template_hills_file = template_hills_file
+    def __init__(self, width, number_of_gaussians, cma_number_of_generations, cma_sigma, cma_upper_bound, cma_lower_bound=0):
+        self.width = width
+        self.number_of_gaussians = number_of_gaussians
+        self.cma_number_of_generations = cma_number_of_generations
+        self.cma_sigma = cma_sigma
+        self.cma_upper_bound = cma_upper_bound
+        self.cma_lower_bound = cma_lower_bound
+
+        self.output_path =  f"output/cma_width{width}_n{number_of_gaussians}_gens{cma_number_of_generations}_S{cma_sigma}_B({cma_lower_bound}-{cma_upper_bound})"
+
+        self.template_hills_file = "TEMPLATE_HILLS"
+
 
         # create template hills file
         self.create_template_hills()
     
-
     # ! generalize later on for other cvs
     def create_template_hills(self):
         """
@@ -46,10 +57,10 @@ class MolSimCMA:
                         #! SET max_psi pi\n")
 
             height_index = 0
-            step_size = 2*np.pi / self.resolution
+            step_size = 2*np.pi / self.number_of_gaussians
             for phi in np.arange(-np.pi, np.pi, step_size):
                 for psi in np.arange(-np.pi, np.pi, step_size):
-                    hills.write(f"0 {phi} {psi} {self.default_sigma} {self.default_sigma} h{height_index} 1\n")
+                    hills.write(f"0 {phi} {psi} {self.width} {self.width} h{height_index} 1\n")
 
                     height_index += 1
 
@@ -66,12 +77,12 @@ class MolSimCMA:
             # print(content)
 
         # replace h0,...,h100 by corresponding vector values
-        for i in range(self.resolution**2):
+        for i in range(self.number_of_gaussians**2):
             pattern = rf'\bh{i}\b'
             content = re.sub(pattern, str(x[i]), content)
 
         # write to output_hills_file, specifying the generation & sample
-        with open(f"gen{gen}-sample{sample}-HILLS", "w") as hills:
+        with open(f"{self.output_path}/HILLS/gen{gen}-sample{sample}-HILLS", "w") as hills:
             hills.write(content)
 
 
@@ -98,31 +109,33 @@ class MolSimCMA:
         # with height equal to 1.2 kJ/mol,
         # and width 0.35 rad for both CVs. 
         #
-        metad: METAD ARG=phi,psi PACE=500000000 HEIGHT=0 SIGMA=0.15,0.15 FILE=gen{gen}-sample{sample}-HILLS
+        metad: METAD ARG=phi,psi PACE=500000000 HEIGHT=0 SIGMA=0.15,0.15 FILE={self.output_path}/HILLS/gen{gen}-sample{sample}-HILLS
 
         # monitor the two variables and the metadynamics bias potential
-        PRINT STRIDE=10 ARG=phi,psi,metad.bias FILE=gen{gen}-sample{sample}-COLVAR
+        PRINT STRIDE=10 ARG=phi,psi,metad.bias FILE={self.output_path}/COLVAR/gen{gen}-sample{sample}-COLVAR
         """
         cvs = ["phi", "psi"]
+
+        # print(bias_script)
 
         # make MolSim object
         molsim = MolSim("alanine-dipeptide-implicit.pdb", forcefield, cvs, bias_script, gen, sample)
 
         # run simulation
-        molsim.run_sim()
+        molsim.run_sim(self.output_path)
 
         # get the data from the resulting COLVAR file
         phi = molsim.colvar_data[:, 1]
         psi = molsim.colvar_data[:, 2]
         # bias = molsim.colvar_data[:, -1]
 
-        print("phi", phi)
-        print("psi", psi)
+        # print("phi", phi)
+        # print("psi", psi)
         # print("bias", bias)
 
         # use this data to make a probability histogram
-        hist = np.histogram2d(phi, psi, bins=self.resolution, range=[[-np.pi, np.pi], [-np.pi, np.pi]], density=None)
-        print("hist", hist)
+        hist = np.histogram2d(phi, psi, bins=self.number_of_gaussians, range=[[-np.pi, np.pi], [-np.pi, np.pi]], density=None)
+        # print("hist", hist)
 
         return hist[0]
 
@@ -136,12 +149,12 @@ class MolSimCMA:
 
         normalized_hist = preprocessing.normalize(hist_no_zeros)
 
-        print("normalized_hist", normalized_hist)
+        # print("normalized_hist", normalized_hist)
         
         # calculate the kl divergence based on the provided probability histogram
         div_kl = np.sum(normalized_hist * np.log2(normalized_hist))
 
-        print("div_kl", div_kl)
+        # print("div_kl", div_kl)
 
         return abs(div_kl)
     
@@ -169,25 +182,35 @@ class MolSimCMA:
         return mse
 
     
-    def CMA(self, folder, max_bound, sigma):
+    def CMA(self):
         """
         execute CMA-ES
         """
-        # initialize optimizer
-        optimizer = CMA(mean=np.zeros(self.resolution**2), sigma=sigma, bounds=np.array([(0, max_bound)] * self.resolution**2))
+        # make output directory
+        if os.path.exists(self.output_path):
+            shutil.rmtree(self.output_path)
 
-        generations = 50
+        os.mkdir(self.output_path)
+        os.mkdir(self.output_path + "/HILLS")
+        os.mkdir(self.output_path + "/COLVAR")
+        os.mkdir(self.output_path + "/plots")
+        os.mkdir(self.output_path + "/animation")
+
+        # initialize optimizer
+        optimizer = SepCMA(mean=np.zeros(self.number_of_gaussians**2), sigma=self.cma_sigma, bounds=np.array([(0, cma_upper_bound)] * self.number_of_gaussians**2))
+
+        generations = self.cma_number_of_generations
         for generation in range(generations):
             solutions = []
             
             for sample in range(optimizer.population_size):
             # for sample in range(50):
 
-                # Check if files already exist and delete them if they do
-                if os.path.exists(f'gen{generation}-sample{sample}-COLVAR'):
-                    os.remove(f'gen{generation}-sample{sample}-COLVAR')
-                if os.path.exists(f'gen{generation}-sample{sample}-HILLS'):
-                    os.remove(f'gen{generation}-sample{sample}-HILLS')
+                # # Check if files already exist and delete them if they do
+                # if os.path.exists(f'gen{generation}-sample{sample}-COLVAR'):
+                #     os.remove(f'gen{generation}-sample{sample}-COLVAR')
+                # if os.path.exists(f'gen{generation}-sample{sample}-HILLS'):
+                #     os.remove(f'gen{generation}-sample{sample}-HILLS')
 
                 # ask optimizer for a sample
                 x = optimizer.ask()
@@ -203,14 +226,113 @@ class MolSimCMA:
                 
                 print(f"#{generation} {value} (x={x})")
 
-            plot_cvs_and_heights(generation, ["phi", "psi"], optimizer.population_size, solutions, folder)
+            plot_cvs_and_heights(self, generation, ["phi", "psi"], optimizer.population_size, self.output_path + "/plots", solutions)
 
             # plot_cvs_per_generation(generation, ["phi", "psi"], 50, solutions)
 
             # tell the optimizer the solutions
             optimizer.tell(solutions)
         
-        contourplot_animation(0, generations, optimizer.population_size, folder)
+        contourplot_animation(self, 0, generations, optimizer.population_size, self.output_path + "/animation")
+
+    
+def plot_cvs_and_heights(self, gen, cvs, population_size, dir, solutions=None):
+
+    colors = cm.rainbow(np.linspace(0, 1, population_size))
+
+    for sample in range(population_size):
+
+        colvar_data = np.loadtxt(f"{self.output_path}/COLVAR/gen{gen}-sample{sample}-COLVAR")
+        hills_data = np.loadtxt(f"{self.output_path}/HILLS/gen{gen}-sample{sample}-HILLS")
+
+        # for i, cv_label in enumerate(cvs):
+        phi = colvar_data[:, 1]
+        psi = colvar_data[:, 2]
+        height = hills_data[:, -2]
+        phi_hills = hills_data[:, 1]
+        psi_hills = hills_data[:, 2]
+        plt.scatter(phi, psi, s=1, marker='x', color=colors[sample])
+
+        for i in range(len(height)):
+            circle = Circle((phi_hills[i], psi_hills[i]), radius=height[i]/1000, fill=False, color='k', alpha=0.5, zorder=100)
+            plt.gca().add_patch(circle)
+
+
+        # patches.Circle((phi_hills, psi_hills), radius=height)
+
+    # Adding labels and legend
+    plt.xlabel("phi")
+    plt.ylabel("psi")
+
+    if solutions:
+        plt.title(f"generation {gen}, evaluate mean = {np.mean([s[1] for s in solutions])}")
+
+    plt.savefig(f'{dir}/generation{gen}.png', bbox_inches='tight')
+
+
+def contourplot(heights, phi, psi, fig, ax, generation, first_cycle):
+
+    # Create a 2D histogram
+    bins = 40
+    heatmap, xedges, yedges = np.histogram2d(phi, psi, bins=bins, weights=heights)
+    print(heatmap)
+
+    # ax.figure(figsize=(10, 8))
+    im = ax.imshow(heatmap.T, origin='lower', extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], cmap='hot')
+    ax.set_xlabel('Phi')
+    ax.set_ylabel('Psi')
+    ax.set_title(f'generation {generation}')
+        # Plot colorbar only for the first cycle
+    if first_cycle:
+        fig.colorbar(im, ax=ax, label='Mean Height of all samples')
+    # plt.show()
+
+    return [im]
+
+
+def contourplot_animation(self, first_gen, last_gen, pop_size, dir=""):
+    
+    heights_list =  []
+    for gen in range(first_gen, last_gen):
+        heights_per_sample = []
+
+        for sample in range(pop_size):
+            hills_data = np.loadtxt(f"{self.output_path}/HILLS/gen{gen}-sample{sample}-HILLS")
+            height = hills_data[:, -2]
+            heights_per_sample.append(height)
+
+        phi = hills_data[:, 1]
+        psi = hills_data[:, 2]
+
+        heights_per_sample_arr = np.array(heights_per_sample)
+
+        heights_list.append(np.mean(heights_per_sample_arr, axis=0))
+
+    
+    # Create figure and axis
+    fig, ax = plt.subplots()
+
+    # Function to update plot for each frame of animation
+    first_cycle = True
+    def update(frame):
+        nonlocal first_cycle
+        ax.clear()
+        gen = first_gen + frame
+        plot = contourplot(heights_list[frame], phi, psi, fig, ax, gen, first_cycle) # Use heights for the current frame
+        first_cycle = False
+
+        return plot
+
+
+    # Create animation
+    ani = animation.FuncAnimation(fig, update, frames=last_gen-first_gen, interval=500, blit=True, repeat=False)
+    # fig.colorbar(fig, ax=ax, label='Height')    
+
+    # Show animation
+    writervideo = animation.FFMpegWriter(fps=5) 
+    ani.save(f'{dir}/animation.mp4', writer=writervideo)
+    plt.close() 
+
 
 
 def plot_cvs(colvar_path, cvs):
@@ -266,7 +388,6 @@ def plot_cvs_per_generation(gen, cvs, population_size, solutions=None):
         else:
             ax.set_title(f"sample {sample}")
     
-
     f.suptitle(f"generation {gen}")
 
     plt.savefig(f'images_cvs_against_each_other/generation{gen}.png', bbox_inches='tight')
@@ -296,104 +417,19 @@ def plot_cvs_per_generation_1plot(gen, cvs, population_size, solutions=None):
 
 
 
-def plot_cvs_and_heights(gen, cvs, population_size, folder, solutions=None):
-
-    colors = cm.rainbow(np.linspace(0, 1, population_size))
-
-    for sample in range(population_size):
-
-        colvar_data = np.loadtxt(f"gen{gen}-sample{sample}-COLVAR")
-        hills_data = np.loadtxt(f"gen{gen}-sample{sample}-HILLS")
-
-        # for i, cv_label in enumerate(cvs):
-        phi = colvar_data[:, 1]
-        psi = colvar_data[:, 2]
-        height = hills_data[:, -2]
-        phi_hills = hills_data[:, 1]
-        psi_hills = hills_data[:, 2]
-        plt.scatter(phi, psi, s=1, marker='x', color=colors[sample])
-
-        for i in range(len(height)):
-            circle = Circle((phi_hills[i], psi_hills[i]), radius=height[i]/750, fill=False, color='k', alpha=0.5, zorder=100)
-            plt.gca().add_patch(circle)
-
-
-        # patches.Circle((phi_hills, psi_hills), radius=height)
-
-    # Adding labels and legend
-    plt.xlabel("phi")
-    plt.ylabel("psi")
-
-    if solutions:
-        plt.title(f"generation {gen}, evaluate mean = {np.mean([s[1] for s in solutions])}")
-
-    plt.savefig(f'{folder}/generation{gen}.png', bbox_inches='tight')
-
-
-def contourplot(heights, phi, psi, fig, ax, generation, first_cycle):
-
-    # Create a 2D histogram
-    bins = 40
-    heatmap, xedges, yedges = np.histogram2d(phi, psi, bins=bins, weights=heights)
-    print(heatmap)
-
-    # ax.figure(figsize=(10, 8))
-    im = ax.imshow(heatmap.T, origin='lower', extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], cmap='hot')
-    ax.set_xlabel('Phi')
-    ax.set_ylabel('Psi')
-    ax.set_title(f'generation {generation}')
-        # Plot colorbar only for the first cycle
-    if first_cycle:
-        fig.colorbar(im, ax=ax, label='Mean Height of all samples')
-    # plt.show()
-
-
-def contourplot_animation(first_gen, last_gen, pop_size, folder=""):
-    
-    heights_list =  []
-    for gen in range(first_gen, last_gen):
-        heights_per_sample = []
-
-        for sample in range(pop_size):
-            hills_data = np.loadtxt(f"gen{gen}-sample{sample}-HILLS")
-            height = hills_data[:, -2]
-            heights_per_sample.append(height)
-
-        phi = hills_data[:, 1]
-        psi = hills_data[:, 2]
-
-        heights_per_sample_arr = np.array(heights_per_sample)
-
-        heights_list.append(np.mean(heights_per_sample_arr, axis=0))
-
-    
-    # Create figure and axis
-    fig, ax = plt.subplots()
-
-    # Function to update plot for each frame of animation
-    first_cycle = True
-    def update(frame):
-        nonlocal first_cycle
-        ax.clear()
-        gen = first_gen + frame
-        contourplot(heights_list[frame], phi, psi, fig, ax, gen, first_cycle) # Use heights for the current frame
-        first_cycle = False
-
-
-    # Create animation
-    ani = FuncAnimation(fig, update, frames=last_gen-first_gen, interval=500, repeat=False)
-    # fig.colorbar(fig, ax=ax, label='Height')    
-
-    # Show animation
-    plt.show()
-    # plt.savefig(f'{folder}/animation.png', bbox_inches='tight')
-
 
 if __name__ == "__main__":
 
-    # test = MolSimCMA(0.15, 10, "TEMPLATE_HILLS")
-    test = MolSimCMA(0.8, 50, "TEMPLATE_HILLS")
-    test.CMA("plots_s7_B(0,40)_width0.8_n50", 40, 7)
+    width = 0.8
+    number_of_gaussians = 30
+    cma_number_of_generations = 30
+    cma_sigma = 7
+    cma_upper_bound = 40
+    # cma_lower_bound = 
+
+    # # test = MolSimCMA(0.15, 10, "TEMPLATE_HILLS")
+    test = MolSimCMA(width, number_of_gaussians, cma_number_of_generations, cma_sigma, cma_upper_bound)
+    test.CMA()
 
 # P=CMA population size,
 # S=CMA sigma,
@@ -401,3 +437,4 @@ if __name__ == "__main__":
 # width=METAD gaussian sigma, 
 # height=METAD gaussian height,
 # n=METAD number of gaussians in 1 dimension, 
+    # contourplot_animation(1, 21, 26, "plots_sigma0.7_N40_bounds0-30")
