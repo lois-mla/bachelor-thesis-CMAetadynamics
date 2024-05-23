@@ -18,17 +18,21 @@ from matplotlib.patches import Circle
 import matplotlib.animation as animation 
 from IPython import display 
 import shutil
+import subprocess
+from mpl_toolkits.mplot3d import Axes3D
+
 
 class MolSimCMA:
-    def __init__(self, width, number_of_gaussians, cma_number_of_generations, cma_sigma, cma_upper_bound, cma_lower_bound=0):
+    def __init__(self, width, number_of_gaussians, nsteps, cma_number_of_generations, cma_sigma, cma_upper_bound, cma_lower_bound=0):
         self.width = width
         self.number_of_gaussians = number_of_gaussians
         self.cma_number_of_generations = cma_number_of_generations
         self.cma_sigma = cma_sigma
         self.cma_upper_bound = cma_upper_bound
         self.cma_lower_bound = cma_lower_bound
+        self.nsteps = nsteps
 
-        self.output_path =  f"output/cma_width{width}_n{number_of_gaussians}_gens{cma_number_of_generations}_S{cma_sigma}_B({cma_lower_bound}-{cma_upper_bound})"
+        self.output_path =  f"output/cma_width{width}_n{number_of_gaussians}_gens{cma_number_of_generations}_S{cma_sigma}_B{cma_lower_bound}-{cma_upper_bound}_nsteps{nsteps}"
 
         self.template_hills_file = "TEMPLATE_HILLS"
 
@@ -119,14 +123,16 @@ class MolSimCMA:
         # print(bias_script)
 
         # make MolSim object
-        molsim = MolSim("alanine-dipeptide-implicit.pdb", forcefield, cvs, bias_script, gen, sample)
+        molsim = MolSim("alanine-dipeptide-implicit.pdb", forcefield, cvs, self.nsteps, bias_script, gen, sample)
 
         # run simulation
         molsim.run_sim(self.output_path)
+ 
+        colvar_data = np.loadtxt(f'{self.output_path}/COLVAR/gen{gen}-sample{sample}-COLVAR')
 
         # get the data from the resulting COLVAR file
-        phi = molsim.colvar_data[:, 1]
-        psi = molsim.colvar_data[:, 2]
+        phi = colvar_data[:, 1]
+        psi = colvar_data[:, 2]
         # bias = molsim.colvar_data[:, -1]
 
         # print("phi", phi)
@@ -197,7 +203,7 @@ class MolSimCMA:
         os.mkdir(self.output_path + "/animation")
 
         # initialize optimizer
-        optimizer = SepCMA(mean=np.zeros(self.number_of_gaussians**2), sigma=self.cma_sigma, bounds=np.array([(0, cma_upper_bound)] * self.number_of_gaussians**2))
+        optimizer = SepCMA(mean=np.zeros(self.number_of_gaussians**2), sigma=self.cma_sigma, bounds=np.array([(0, self.cma_upper_bound)] * self.number_of_gaussians**2))
 
         generations = self.cma_number_of_generations
         for generation in range(generations):
@@ -234,16 +240,17 @@ class MolSimCMA:
             optimizer.tell(solutions)
         
         contourplot_animation(self, 0, generations, optimizer.population_size, self.output_path + "/animation")
+        calculate_free_energy(self.output_path, generations, optimizer.population_size)
 
     
-def plot_cvs_and_heights(self, gen, cvs, population_size, dir, solutions=None):
+def plot_cvs_and_heights(cmaObj, gen, cvs, population_size, dir, solutions=None):
 
     colors = cm.rainbow(np.linspace(0, 1, population_size))
 
     for sample in range(population_size):
 
-        colvar_data = np.loadtxt(f"{self.output_path}/COLVAR/gen{gen}-sample{sample}-COLVAR")
-        hills_data = np.loadtxt(f"{self.output_path}/HILLS/gen{gen}-sample{sample}-HILLS")
+        colvar_data = np.loadtxt(f"{cmaObj.output_path}/COLVAR/gen{gen}-sample{sample}-COLVAR")
+        hills_data = np.loadtxt(f"{cmaObj.output_path}/HILLS/gen{gen}-sample{sample}-HILLS")
 
         # for i, cv_label in enumerate(cvs):
         phi = colvar_data[:, 1]
@@ -290,14 +297,14 @@ def contourplot(heights, phi, psi, fig, ax, generation, first_cycle):
     return [im]
 
 
-def contourplot_animation(self, first_gen, last_gen, pop_size, dir=""):
+def contourplot_animation(cmaObj, first_gen, last_gen, pop_size, dir=""):
     
     heights_list =  []
     for gen in range(first_gen, last_gen):
         heights_per_sample = []
 
         for sample in range(pop_size):
-            hills_data = np.loadtxt(f"{self.output_path}/HILLS/gen{gen}-sample{sample}-HILLS")
+            hills_data = np.loadtxt(f"{cmaObj.output_path}/HILLS/gen{gen}-sample{sample}-HILLS")
             height = hills_data[:, -2]
             heights_per_sample.append(height)
 
@@ -416,20 +423,118 @@ def plot_cvs_per_generation_1plot(gen, cvs, population_size, solutions=None):
     plt.savefig(f'plots_all_samples_in_1_plot/generation{gen}.png', bbox_inches='tight')
 
 
+def run_plumed_command(command):
+    try:
+        # Execute the PLUMED command
+        process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output, error = process.communicate()
+        # Check if the command executed successfully
+        if process.returncode == 0:
+            print("PLUMED command executed successfully.")
+            # Process the output if needed
+            print("Output:", output.decode())
+        else:
+            print("Error executing PLUMED command:")
+            print(error.decode())
+    except Exception as e:
+        print("An error occurred:", e)
+
+
+def calculate_free_energy(path, last_gen, pop_size):
+    if not os.path.exists(path + "/free_energy"):
+        os.mkdir(path + "/free_energy")
+
+    for sample in range(pop_size):
+        run_plumed_command(f"plumed sum_hills --hills {path}/HILLS/gen{last_gen}-sample{sample}-HILLS --outfile {path}/free_energy/fes{sample}.dat")
+
+def calculate_free_energy_phi(path, last_gen, pop_size):
+    if not os.path.exists(path + "/free_energy"):
+        os.mkdir(path + "/free_energy")
+
+    for sample in range(pop_size):
+        run_plumed_command(f"plumed sum_hills --hills {path}/HILLS/gen{last_gen}-sample{sample}-HILLS --idw phi --kt 2.5 --stride 500 --mintozero --outfile {path}/free_energy/fes{sample}_phi.dat")
+
+
+def plot_free_energy_3d(path, pop_size):
+    # plot free energy as a function of simulation time
+
+    # Create a 3D plot
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    for sample in range(pop_size):   
+        # import fes file into pandas dataset
+        data = np.loadtxt(f"{path}/fes{sample}.dat")
+
+        phi = data[:, 0]
+        psi = data[:, 1]
+        free_energy = data[:, 2]  
+
+        # Plot the data points
+        ax.scatter(phi, psi, free_energy, c=free_energy, cmap='viridis', marker='o')
+
+        # # plot fes
+        # plt.plot(phi, free_energy, label=f"Sample {sample}") 
+
+    # Set labels and title
+    ax.set_xlabel('Phi')
+    ax.set_ylabel('Psi')
+    ax.set_zlabel('Free Energy')
+    ax.set_title('3D Plot of Phi, Psi, and Free Energy')
+    # # labels
+    # plt.xlabel("phi [rad]")
+    # plt.ylabel("free energy [kJ/mol]")
+    # plt.legend(ncol=3)
+
+    plt.savefig(f'{path}/free_energy_phi.png', bbox_inches='tight')
+
+
+def plot_free_energy_2d(path, pop_size):
+
+    for sample in range(pop_size):
+
+        # import fes file into pandas dataset
+        data = np.loadtxt(f"{path}/fes{sample}_phi.dat0.dat")
+
+        phi = data[:, 0]
+        free_energy = data[:, 1]  
+
+        # plot fes
+        plt.plot(phi, free_energy) 
+
+    # labels
+    plt.xlabel("phi [rad]")
+    plt.ylabel("free energy [kJ/mol]")
+    # plt.legend(ncol=3)
+
+    plt.savefig(f'{path}/free_energy2d.png', bbox_inches='tight')
+
+
+
 
 
 if __name__ == "__main__":
 
-    width = 0.8
-    number_of_gaussians = 30
-    cma_number_of_generations = 30
-    cma_sigma = 7
-    cma_upper_bound = 40
+    number_of_gaussians = 10
+    cma_number_of_generations = 50
+    time_steps = 100000
+
+    cma_upper_bound = 10
     # cma_lower_bound = 
 
-    # # test = MolSimCMA(0.15, 10, "TEMPLATE_HILLS")
-    test = MolSimCMA(width, number_of_gaussians, cma_number_of_generations, cma_sigma, cma_upper_bound)
-    test.CMA()
+    # set width to be the distance between the gaussians
+    width = round(2 * (2 * np.pi) / number_of_gaussians, 3)
+
+    # set cma_sigma to be 20% of the upper bound
+    cma_sigma = 0.2 * cma_upper_bound
+
+    # test = MolSimCMA(width, number_of_gaussians, time_steps, cma_number_of_generations, cma_sigma, cma_upper_bound)
+    # test.CMA()
+
+    # run_plumed_command("plumed sum_hills --hills output/cma_width1.3_n10_gens100_S7_B0-40/HILLS/gen50-sample1-HILLS ")
+    calculate_free_energy_phi("output/cma_width1.257_n10_gens50_S2.0_B0-10", 0, 17)
+    plot_free_energy_2d("output/cma_width1.257_n10_gens50_S2.0_B0-10/free_energy", 17)
+
 
 # P=CMA population size,
 # S=CMA sigma,
