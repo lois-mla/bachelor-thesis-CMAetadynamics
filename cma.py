@@ -245,6 +245,8 @@ class MolSimCMA:
     
 def plot_cvs_and_heights(cmaObj, gen, cvs, population_size, dir, solutions=None):
 
+    plt.figure()  # Create a new figure
+
     colors = cm.rainbow(np.linspace(0, 1, population_size))
 
     for sample in range(population_size):
@@ -275,6 +277,9 @@ def plot_cvs_and_heights(cmaObj, gen, cvs, population_size, dir, solutions=None)
         plt.title(f"generation {gen}, evaluate mean = {np.mean([s[1] for s in solutions])}")
 
     plt.savefig(f'{dir}/generation{gen}.png', bbox_inches='tight')
+
+    plt.close()  # Close the current figure to prevent accumulation
+
 
 
 def contourplot(heights, phi, psi, fig, ax, generation, first_cycle):
@@ -515,8 +520,8 @@ def plot_free_energy_2d(path, pop_size):
 
 if __name__ == "__main__":
 
-    number_of_gaussians = 10
-    cma_number_of_generations = 50
+    number_of_gaussians = 25
+    cma_number_of_generations = 200
     time_steps = 100000
 
     cma_upper_bound = 10
@@ -528,12 +533,12 @@ if __name__ == "__main__":
     # set cma_sigma to be 20% of the upper bound
     cma_sigma = 0.2 * cma_upper_bound
 
-    # test = MolSimCMA(width, number_of_gaussians, time_steps, cma_number_of_generations, cma_sigma, cma_upper_bound)
-    # test.CMA()
+    test = MolSimCMA(width, number_of_gaussians, time_steps, cma_number_of_generations, cma_sigma, cma_upper_bound)
+    test.CMA()
 
     # run_plumed_command("plumed sum_hills --hills output/cma_width1.3_n10_gens100_S7_B0-40/HILLS/gen50-sample1-HILLS ")
-    calculate_free_energy_phi("output/cma_width1.257_n10_gens50_S2.0_B0-10", 0, 17)
-    plot_free_energy_2d("output/cma_width1.257_n10_gens50_S2.0_B0-10/free_energy", 17)
+    # calculate_free_energy_phi("output/cma_width0.628_n10_gens50_S2.0_B0-10", 49, 17)
+    # plot_free_energy_2d("output/cma_width0.628_n10_gens50_S2.0_B0-10/free_energy", 17)
 
 
 # P=CMA population size,
