@@ -176,7 +176,7 @@ def evaluate2(prob_hist):
 
 
 # Load PDB file into PDBFile object
-pdb = PDBFile('alanine-dipeptide-implicit.pdb')
+pdb = PDBFile('../alanine-dipeptide-implicit.pdb')
 
 # Load forcefield into ForceField object
 forcefield = ForceField('amber14-all.xml', 'amber14/tip3pfb.xml')
@@ -196,10 +196,10 @@ psi: TORSION ATOMS=7,9,15,17
 # with height equal to 1.2 kJ/mol,
 # and width 0.35 rad for both CVs. 
 
-metad: METAD ARG=phi,psi PACE=500 HEIGHT=1.2 SIGMA=0.35,0.35 FILE=HILLS_compare 
+metad: METAD ARG=phi,psi PACE=500 HEIGHT=1.2 SIGMA=0.35,0.35 FILE=HILLS_compare2 
 
 # monitor the two variables and the metadynamics bias potential
-PRINT STRIDE=10 ARG=phi,psi,metad.bias FILE=COLVAR_compare
+PRINT STRIDE=10 ARG=phi,psi,metad.bias FILE=COLVAR_compare2
 """
 
 system.addForce(PlumedForce(script))
@@ -209,7 +209,7 @@ integrator = LangevinMiddleIntegrator(300*kelvin, 1/picosecond, 0.002*picosecond
 integrator.setConstraintTolerance(0.00001)  # Set constraint tolerance based on MDP file
 # integrator.setAngularMomentum(True)  # Set angular momentum removal based on MDP file
 
-nsteps = 1500000  # Set the number of steps based on MDP file
+nsteps = 2500000  # Set the number of steps based on MDP file
 dt = 0.002  # Set the time step based on MDP file
 
 # Combine the molecular topology, system, and integrator to begin a new simulation
@@ -236,18 +236,18 @@ simulation.reporters.append(StateDataReporter(stdout, 1000, step=True,
 # Run the simulation
 simulation.step(nsteps)
 
-plot_cvs("COLVAR_compare", ["phi", "psi"])
-plot_cvs_time("COLVAR_compare", ["phi", "psi"])
+plot_cvs("COLVAR_compare2", ["phi", "psi"])
+plot_cvs_time("COLVAR_compare2", ["phi", "psi"])
 
-begin_hist = get_prob_hist_from_colvar("COLVAR_compare", 1, 50000)
-middle_hist = get_prob_hist_from_colvar("COLVAR_compare", 100000, 500000)
-end_hist = get_prob_hist_from_colvar("COLVAR_compare", 1000000, 15000000)
+begin_hist = get_prob_hist_from_colvar("COLVAR_compare2", 1, 50000)
+middle_hist = get_prob_hist_from_colvar("COLVAR_compare2", 100000, 500000)
+end_hist = get_prob_hist_from_colvar("COLVAR_compare2", 2000000, 25000000)
 
 print("eval: 1-50000", evaluate(begin_hist))
 print("eval2: 1-50000", evaluate2(begin_hist))
 print("eval: 100000-500000", evaluate(middle_hist))
 print("eval2: 100000-500000", evaluate2(middle_hist))
-print("eval: 1000000-1500000", evaluate(end_hist))
-print("eval2: 1000000-1500000", evaluate2(end_hist))
+print("eval: 2000000-2500000", evaluate(end_hist))
+print("eval2: 2000000-2500000", evaluate2(end_hist))
 
 

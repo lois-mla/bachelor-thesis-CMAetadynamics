@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
+
 def plot_free_energy2d():
     # plot free energy as a function of simulation time
 
@@ -72,6 +73,35 @@ def plot_free_energy3d():
     plt.show()
 
 
+    
+def plot_cvs_and_heights():
+
+    plt.figure()  # Create a new figure
+
+    colvar_data = np.loadtxt(f"COLVAR_compare2")
+    hills_data = np.loadtxt("HILLS_compare2")
+
+    # for i, cv_label in enumerate(cvs):
+    phi = colvar_data[:, 1]
+    psi = colvar_data[:, 2]
+    # height = hills_data[:, -2]
+    phi_hills = hills_data[:, 1]
+    psi_hills = hills_data[:, 2]
+
+    # plot locations of the Gaussians
+    plt.scatter(phi_hills, psi_hills, s=1, marker='x', color="k", alpha=0.25)
+
+    # plt.scatter(phi, psi, s=1, marker='x', color="b")
+
+    # Adding labels and legend
+    plt.xlabel("phi")
+    plt.ylabel("psi")
+
+    plt.savefig(f'tingz.png', bbox_inches='tight')
+
+    plt.close()  # Close the current figure to prevent accumulation
+
+
 
 if __name__ == "__main__":
-    plot_free_energy2d()
+    plot_cvs_and_heights()
