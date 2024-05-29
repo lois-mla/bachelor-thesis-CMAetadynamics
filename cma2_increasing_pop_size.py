@@ -558,7 +558,7 @@ if __name__ == "__main__":
     starting_population_size = 5
     pop_increase_factor = 2
     cma_number_of_generations = 200
-    time_steps = 10000
+    time_steps = 50000
     height = 1.2
 
     cma_upper_bound = np.pi

@@ -32,7 +32,7 @@ class MolSimCMA:
         self.cma_lower_bound = cma_lower_bound
         self.nsteps = nsteps
 
-        self.output_path =  f"output/cma_width{width}_n{number_of_gaussians}_gens{cma_number_of_generations}_S{cma_sigma}_B{cma_lower_bound}-{cma_upper_bound}_nsteps{nsteps}"
+        self.output_path =  f"correct_output/cma_width{width}_n{number_of_gaussians}_gens{cma_number_of_generations}_S{cma_sigma}_B{cma_lower_bound}-{cma_upper_bound}_nsteps{nsteps}"
 
         self.template_hills_file = "TEMPLATE_HILLS"
 
@@ -153,7 +153,7 @@ class MolSimCMA:
  
         hist_no_zeros = prob_hist + 1
 
-        normalized_hist = preprocessing.normalize(hist_no_zeros)
+        normalized_hist = prob_hist / np.sum(prob_hist)
 
         # print("normalized_hist", normalized_hist)
         
@@ -179,8 +179,7 @@ class MolSimCMA:
         goal_value = 1/num_bins
 
         # get normalized histogram
-        normalized_hist = preprocessing.normalize(prob_hist)
-
+        normalized_hist = prob_hist / np.sum(prob_hist)
 
         # calculate mean squared error
         mse = np.square(np.subtract(normalized_hist,goal_value)).mean()
@@ -515,26 +514,60 @@ def plot_free_energy_2d(path, pop_size):
     plt.savefig(f'{path}/free_energy2d.png', bbox_inches='tight')
 
 
+def plot_bias(colvar_file, save_path):
+
+    colvar_data = np.loadtxt(colvar_file)
+    # hills_data = np.loadtxt("HILLS_compare2")
+    # begin_index = 0
+    # end_index = 25000000
+
+    # # for i, cv_label in enumerate(cvs):
+    # phi = colvar_data[:, 1][begin_index: end_index]
+    # psi = colvar_data[:, 2][begin_index: end_index]
+    # bias = colvar_data[:, 3][begin_index: end_index]
+
+    # for i, cv_label in enumerate(cvs):
+    phi = colvar_data[:, 1]
+    psi = colvar_data[:, 2]
+    bias = colvar_data[:, 3]
+
+    # Create a 2D histogram
+    bins = 50
+    heatmap, xedges, yedges = np.histogram2d(phi, psi, bins=bins, weights=bias)
+    print(heatmap)
+
+    # ax.figure(figsize=(10, 8))
+    im = plt.imshow(heatmap.T, origin='lower', extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], cmap='hot')
+    plt.xlabel('Phi')
+    plt.ylabel('Psi')
+        # Plot colorbar only for the first cycle
+    plt.colorbar(im, label='bias')
+    plt.savefig(save_path)
 
 
 
 if __name__ == "__main__":
 
     number_of_gaussians = 25
-    cma_number_of_generations = 200
+    cma_number_of_generations = 150
     time_steps = 100000
 
     cma_upper_bound = 10
     # cma_lower_bound = 
 
+    # calculate the distance between the gaussians
+    d = (2 * np.pi) / number_of_gaussians
+
     # set width to be the distance between the gaussians
-    width = round(2 * (2 * np.pi) / number_of_gaussians, 3)
+    width = round(d*(1/(np.sqrt(8 * np.log(2)))), 3)
 
     # set cma_sigma to be 20% of the upper bound
     cma_sigma = 0.2 * cma_upper_bound
 
     test = MolSimCMA(width, number_of_gaussians, time_steps, cma_number_of_generations, cma_sigma, cma_upper_bound)
     test.CMA()
+
+    # plot_bias("output/cma_width0.628_n10_gens200_S2.0_B0-10_nsteps500000/COLVAR/gen23-sample2-COLVAR", "test")
 
     # run_plumed_command("plumed sum_hills --hills output/cma_width1.3_n10_gens100_S7_B0-40/HILLS/gen50-sample1-HILLS ")
     # calculate_free_energy_phi("output/cma_width0.628_n10_gens50_S2.0_B0-10", 49, 17)

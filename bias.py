@@ -109,10 +109,10 @@ if __name__ == "__main__":
         phi: TORSION ATOMS=5,7,9,15
         psi: TORSION ATOMS=7,9,15,17
         #
-        metad: METAD ARG=phi,psi PACE=500 HEIGHT=0 SIGMA=0,0 FILE=HILLS_test
+        metad: METAD ARG=phi,psi PACE=500 HEIGHT=0 SIGMA=0,0 FILE=HILLS_no_bias
 
         # monitor the two variables and the metadynamics bias potential
-        PRINT STRIDE=10 ARG=phi,psi,metad.bias FILE=COLVAR_test
+        PRINT STRIDE=10 ARG=phi,psi,metad.bias FILE=COLVAR_no_bias
         """
     
     cvs = ["phi", "psi"]

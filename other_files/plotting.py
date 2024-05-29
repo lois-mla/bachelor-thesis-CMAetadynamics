@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+# import seaborn as sns
 
 
 
@@ -102,6 +103,86 @@ def plot_cvs_and_heights():
     plt.close()  # Close the current figure to prevent accumulation
 
 
+def plot_bias(colvar_file, save_path):
+
+    colvar_data = np.loadtxt(colvar_file)
+    # hills_data = np.loadtxt("HILLS_compare2")
+    begin_index = 0
+    end_index = 25000000
+
+    # for i, cv_label in enumerate(cvs):
+    phi = colvar_data[:, 1][begin_index: end_index]
+    psi = colvar_data[:, 2][begin_index: end_index]
+    bias = colvar_data[:, 3][begin_index: end_index]
+
+    # Create a 2D histogram
+    bins = 50
+    heatmap, xedges, yedges = np.histogram2d(phi, psi, bins=bins, weights=bias)
+    print(heatmap)
+
+    # ax.figure(figsize=(10, 8))
+    im = plt.imshow(heatmap.T, origin='lower', extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], cmap='hot')
+    plt.xlabel('Phi')
+    plt.ylabel('Psi')
+        # Plot colorbar only for the first cycle
+    plt.colorbar(im, label='bias')
+    plt.savefig(save_path)
+
+
+def plot_fes_heatmap(fes_file, save_path):
+
+    fes_data = np.loadtxt(fes_file)
+
+    # phi = fes_data[:, 0].unique
+    # psi = fes_data[:, 1].unique
+    # fes_grid = fes_data.pivot(index='psi', columns='phi', values='fes')
+
+
+    # # phi_values = data['phi'].unique()
+    # # psi_values = data['psi'].unique()
+    # # fes_grid = data.pivot(index='psi', columns='phi', values='fes')
+
+    # # Step 3: Create the heatmap
+    # plt.figure(figsize=(10, 8))
+    # sns.heatmap(fes_grid, cmap='viridis', xticklabels=phi, yticklabels=psi)
+
+
+    # Step 2: Extract phi, psi, and fes
+    phi = fes_data[:, 0]
+    psi = fes_data[:, 1]
+    fes = fes_data[:, 2]
+    # Step 3: Determine the grid size and reshape
+    # Assuming the grid is 50x50 and phi and psi values are sorted appropriately
+    grid_size = 51
+
+    # Reshape fes into a 50x50 grid
+    fes_grid = fes.reshape((grid_size, grid_size))
+
+    # Generate phi and psi values for labeling
+    phi_values = np.unique(phi).reshape((grid_size,))
+    psi_values = np.unique(psi).reshape((grid_size,))
+
+    # Step 4: Plot the heatmap
+    plt.figure(figsize=(10, 8))
+    plt.imshow(fes_grid, cmap='viridis', extent=[phi_values.min(), phi_values.max(), psi_values.min(), psi_values.max()],
+            origin='lower', aspect='auto')
+    plt.colorbar(label='FES')
+
+
+    # # Create a 2D histogram
+    # bins = 50
+    # heatmap, xedges, yedges = np.histogram2d(phi, psi, bins=bins, weights=fes)
+    # print(heatmap)
+
+    # # ax.figure(figsize=(10, 8))
+    # im = plt.imshow(heatmap.T, origin='lower', extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], cmap='hot')
+    plt.xlabel('Phi')
+    plt.ylabel('Psi')
+        # Plot colorbar only for the first cycle
+    # plt.colorbar(im, label='fes')
+    plt.savefig(save_path)
+
+
 
 if __name__ == "__main__":
-    plot_cvs_and_heights()
+    plot_fes_heatmap("fes_compare.dat", "fes")

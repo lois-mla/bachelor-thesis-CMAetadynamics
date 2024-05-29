@@ -41,7 +41,7 @@ class MolSimCMA:
         self.cma_lower_bound = cma_lower_bound
         self.nsteps = nsteps
 
-        self.output_path =  f"output2/sepcma_increasing_vec_size_init{initial_size}_incr{increment_step}_final{final_size}_S{cma_sigma}_nsteps{nsteps}"
+        self.output_path =  f"correct_output2/sepcma_increasing_vec_size_init{initial_size}_incr{increment_step}_final{final_size}_S{cma_sigma}_nsteps{nsteps}"
 
         self.template_hills_file = "TEMPLATE_HILLS2"
         
@@ -656,7 +656,7 @@ if __name__ == "__main__":
 
 
     cma_number_of_generations = 200
-    time_steps = 50000
+    time_steps = 100000
     height = 1.2
 
     cma_upper_bound = np.pi
