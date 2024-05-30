@@ -120,7 +120,7 @@ class MolSimCMA:
         """
         cvs = ["phi", "psi"]
 
-        # print(bias_script)
+        print("alanine-dipeptide-implicit.pdb", forcefield, cvs, self.nsteps, bias_script, gen, sample)
 
         # make MolSim object
         molsim = MolSim("alanine-dipeptide-implicit.pdb", forcefield, cvs, self.nsteps, bias_script, gen, sample)
@@ -544,6 +544,35 @@ def plot_bias(colvar_file, save_path):
     plt.colorbar(im, label='bias')
     plt.savefig(save_path)
 
+
+
+def plot_evaluate(eval_matrix):
+    """
+    Plots each the evaluation values for each sample over the generations
+
+    Parameters:
+    eval_matrix (numpy.ndarray): A 2D numpy array of shape (N, M).
+    """
+    # Number of rows (N) and columns (M)
+    N, M = eval_matrix.shape
+    generation = np.arange(N)
+    
+    # Create a scatter plot for each row in the matrix
+    plt.figure(figsize=(10, 6))
+    
+    for i in range(M):
+        plt.scatter(generation, eval_matrix[:, i], label=f'evaluation value sample {i+1}')
+
+    avg_eval = np.mean(eval_matrix, axis=1)
+    
+    plt.scatter(generation, avg_eval, label=f'average evaluation value')
+
+    plt.title('Scatter Plot of Vectors Over Time')
+    plt.xlabel('Generation')
+    plt.ylabel('Value')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
 
 
 if __name__ == "__main__":
