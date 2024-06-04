@@ -2,7 +2,8 @@ from openmm.app import *
 from openmm import *
 from openmm.unit import *
 from sys import stdout
-from openmmplumed import PlumedForce
+# import openmmtools 
+# from openmmplumed import PlumedForce
 import numpy as np
 from cmaes import CMA
 from cmaes import SepCMA
@@ -20,6 +21,7 @@ from IPython import display
 import shutil
 import subprocess
 from mpl_toolkits.mplot3d import Axes3D
+import pickle
 
 
 class MolSimCMA:
@@ -32,7 +34,12 @@ class MolSimCMA:
         self.cma_lower_bound = cma_lower_bound
         self.nsteps = nsteps
 
-        self.output_path =  f"correct_output/cma_width{width}_n{number_of_gaussians}_gens{cma_number_of_generations}_S{cma_sigma}_B{cma_lower_bound}-{cma_upper_bound}_nsteps{nsteps}"
+        subfolder = "output_eval"
+
+        if not os.path.exists(subfolder):
+            os.mkdir(subfolder)
+
+        self.output_path =  f"{subfolder}/cma_width{width}_n{number_of_gaussians}_S{cma_sigma}_B{cma_lower_bound}-{cma_upper_bound}_nsteps{nsteps}_1"
 
         self.template_hills_file = "TEMPLATE_HILLS"
 
@@ -135,10 +142,6 @@ class MolSimCMA:
         psi = colvar_data[:, 2]
         # bias = molsim.colvar_data[:, -1]
 
-        # print("phi", phi)
-        # print("psi", psi)
-        # print("bias", bias)
-
         # use this data to make a probability histogram
         hist = np.histogram2d(phi, psi, bins=self.number_of_gaussians, range=[[-np.pi, np.pi], [-np.pi, np.pi]], density=None)
         # print("hist", hist)
@@ -146,24 +149,33 @@ class MolSimCMA:
         return hist[0]
 
 
+
     def evaluate(self, prob_hist):
         """
         evaluate the prob_hist based on the kl divergence, and return its absolute value
         """
- 
-        hist_no_zeros = prob_hist + 1
 
-        normalized_hist = prob_hist / np.sum(prob_hist)
+        hist_no_zeros = prob_hist + 0.00001
+
+        normalized_hist = hist_no_zeros / np.sum(hist_no_zeros)
+
+        print(np.sum(normalized_hist))
+
+        shape = normalized_hist.shape
 
         # print("normalized_hist", normalized_hist)
+        num_bins = np.prod(shape)
+
+        # goal value
+        goal_value = 1/num_bins
         
         # calculate the kl divergence based on the provided probability histogram
-        div_kl = np.sum(normalized_hist * np.log2(normalized_hist))
+        div_kl = np.sum(normalized_hist * np.log(normalized_hist/goal_value))
 
         # print("div_kl", div_kl)
 
         return abs(div_kl)
-    
+
 
     def evaluate2(self, prob_hist):
         """
@@ -186,36 +198,78 @@ class MolSimCMA:
 
         return mse
 
+
+    def evaluate3(self, prob_hist):
+        """
+        evaluate the prob_hist by finding the mean squared distance between it and a uniform histogram
+        """
+        # find number of bins
+        shape = prob_hist.shape
+
+        # The number of bins in each dimension is equal to the size of that dimension
+        num_bins = np.prod(shape)
+
+        # goal value
+        goal_value = 1/num_bins
+
+        # get normalized histogram
+        normalized_hist = prob_hist / np.sum(prob_hist)
+
+        # calculate mean squared error
+        mse = abs(np.subtract(normalized_hist,goal_value)).mean()
+
+        return mse
+
     
-    def CMA(self):
+    def CMA(self, start_from_pickle_gen=-1):
         """
         execute CMA-ES
         """
         # make output directory
-        if os.path.exists(self.output_path):
-            shutil.rmtree(self.output_path)
 
-        os.mkdir(self.output_path)
-        os.mkdir(self.output_path + "/HILLS")
-        os.mkdir(self.output_path + "/COLVAR")
-        os.mkdir(self.output_path + "/plots")
-        os.mkdir(self.output_path + "/animation")
+        # if start_from_pickle_gen is set to -1, don't restart from pickle
+        if start_from_pickle_gen == -1:
+            run_n = 2
+
+            while os.path.exists(self.output_path):
+                self.output_path = self.output_path[:-2] + str(run_n)
+                run_n += 1
+
+            os.mkdir(self.output_path)
+            os.mkdir(self.output_path + "/HILLS")
+            os.mkdir(self.output_path + "/COLVAR")
+            os.mkdir(self.output_path + "/plots")
+            os.mkdir(self.output_path + "/animation")
+            os.mkdir(self.output_path + "/free_energy")
+            os.mkdir(self.output_path + "/pickled_files")
+            os.mkdir(self.output_path + "/eval_values")
 
         # initialize optimizer
-        optimizer = SepCMA(mean=np.zeros(self.number_of_gaussians**2), sigma=self.cma_sigma, bounds=np.array([(0, self.cma_upper_bound)] * self.number_of_gaussians**2))
+        if start_from_pickle_gen != -1:
+            with open(f"{self.output_path}/pickled_files/optimizer{str(start_from_pickle_gen)}.pickled", 'rb') as f:
+                optimizer = pickle.load(f)
+        else:
+            optimizer = SepCMA(mean=np.zeros(self.number_of_gaussians**2), sigma=self.cma_sigma, bounds=np.array([(0, self.cma_upper_bound)] * self.number_of_gaussians**2))
+
+            # write header for file to store eval values
+            with open((f"{self.output_path}/eval_values/evaluation_values.txt"), "w") as eval_file:
+                # Write the header
+                header = "Generation\\Sample" + "\t" + "\t".join(str(i) for i in range(optimizer.population_size)) + "\n"
+                eval_file.write(header)
+
 
         generations = self.cma_number_of_generations
-        for generation in range(generations):
+
+        # initialize eval_matrix to store all evaluation values in
+
+        # eval_matrix = np.zeros((generations, optimizer.population_size))
+        evaluation_values = []
+
+        for generation in range(start_from_pickle_gen + 1, generations):
             solutions = []
+            evaluation_values_per_gen = [] 
             
             for sample in range(optimizer.population_size):
-            # for sample in range(50):
-
-                # # Check if files already exist and delete them if they do
-                # if os.path.exists(f'gen{generation}-sample{sample}-COLVAR'):
-                #     os.remove(f'gen{generation}-sample{sample}-COLVAR')
-                # if os.path.exists(f'gen{generation}-sample{sample}-HILLS'):
-                #     os.remove(f'gen{generation}-sample{sample}-HILLS')
 
                 # ask optimizer for a sample
                 x = optimizer.ask()
@@ -223,23 +277,54 @@ class MolSimCMA:
                 # run the simulation on this sample and get the corresponding probability histogram
                 prob_hist = self.run_simulation(x, generation, sample)
 
-                # evaluate the prob_hist with kl divergence
-                value = self.evaluate2(prob_hist)
+                # evaluate the prob_hist
+                value = self.evaluate(prob_hist)
 
-                # append solutions by both x and its kl div value
+                # update eval_matrix with value
+                # eval_matrix[generation, sample] = value
+
+                calculate_free_energy(self.output_path, generation, sample)                
+
+                # append solutions by both x and its evaluate value
                 solutions.append((x, value))
+                evaluation_values_per_gen.append(value)
                 
                 print(f"#{generation} {value} (x={x})")
 
+            with open((f"{self.output_path}/eval_values/evaluation_values.txt"), "w") as eval_file:
+                row = f"{generation}" + "\t" + "\t".join(f"{val:.4f}" for val in evaluation_values_per_gen) + "\n"
+                eval_file.write(row)
+
+            
             plot_cvs_and_heights(self, generation, ["phi", "psi"], optimizer.population_size, self.output_path + "/plots", solutions)
 
+            # print(eval_matrix)
+
+            # find the sample which has the best evaluate value
+            # best_eval_sample = max(solutions, key=lambda item: item[1])[2]
+            best_eval_sample = np.argmax(evaluation_values_per_gen)
+
+            # plot the bias in a 2d heatmap plot for the best evaluated sample
+            plot_bias_2d(self.output_path, generation, best_eval_sample)
+            
             # plot_cvs_per_generation(generation, ["phi", "psi"], 50, solutions)
+            # plot_bias3d(self.output_path, generation, 1)
+
+            with open(f"{self.output_path}/pickled_files/optimizer{str(generation)}.pickled", "wb") as f: 
+                pickle.dump(optimizer, f)
+
+            evaluation_values.append(evaluation_values_per_gen)
 
             # tell the optimizer the solutions
             optimizer.tell(solutions)
+
+        eval_matrix = np.array(evaluation_values)
         
-        contourplot_animation(self, 0, generations, optimizer.population_size, self.output_path + "/animation")
-        calculate_free_energy(self.output_path, generations, optimizer.population_size)
+        # contourplot_animation(self, 0, generations, optimizer.population_size, self.output_path + "/animation")
+        plot_evaluate(eval_matrix, self.output_path + "/plots")
+
+
+        # calculate_free_energy(self.output_path, generations, optimizer.population_size)
 
     
 def plot_cvs_and_heights(cmaObj, gen, cvs, population_size, dir, solutions=None):
@@ -265,7 +350,7 @@ def plot_cvs_and_heights(cmaObj, gen, cvs, population_size, dir, solutions=None)
             circle = Circle((phi_hills[i], psi_hills[i]), radius=height[i]/1000, fill=False, color='k', alpha=0.5, zorder=100)
             plt.gca().add_patch(circle)
 
-
+ 
         # patches.Circle((phi_hills, psi_hills), radius=height)
 
     # Adding labels and legend
@@ -367,7 +452,9 @@ def plot_cvs(colvar_path, cvs):
 
     # Show plot
     plt.grid(True)
-    plt.show()
+    # plt.show()
+    plt.close()  # Close the current figure to prevent accumulation
+
 
 
 def plot_cvs_per_generation(gen, cvs, population_size, solutions=None):
@@ -402,6 +489,8 @@ def plot_cvs_per_generation(gen, cvs, population_size, solutions=None):
     f.suptitle(f"generation {gen}")
 
     plt.savefig(f'images_cvs_against_each_other/generation{gen}.png', bbox_inches='tight')
+    plt.close()  # Close the current figure to prevent accumulation
+
 
 
 def plot_cvs_per_generation_1plot(gen, cvs, population_size, solutions=None):
@@ -425,6 +514,8 @@ def plot_cvs_per_generation_1plot(gen, cvs, population_size, solutions=None):
         plt.title(f"evaluate = {np.mean([s[1] for s in solutions])}")
 
     plt.savefig(f'plots_all_samples_in_1_plot/generation{gen}.png', bbox_inches='tight')
+    plt.close()  # Close the current figure to prevent accumulation
+
 
 
 def run_plumed_command(command):
@@ -444,19 +535,15 @@ def run_plumed_command(command):
         print("An error occurred:", e)
 
 
-def calculate_free_energy(path, last_gen, pop_size):
+def calculate_free_energy(path, gen, sample):
+    run_plumed_command(f"plumed sum_hills --hills {path}/HILLS/gen{gen}-sample{sample}-HILLS --outfile {path}/free_energy/fes_gen{gen}_{sample}.dat")
+
+def calculate_free_energy_phi(path, gen, pop_size):
     if not os.path.exists(path + "/free_energy"):
         os.mkdir(path + "/free_energy")
 
     for sample in range(pop_size):
-        run_plumed_command(f"plumed sum_hills --hills {path}/HILLS/gen{last_gen}-sample{sample}-HILLS --outfile {path}/free_energy/fes{sample}.dat")
-
-def calculate_free_energy_phi(path, last_gen, pop_size):
-    if not os.path.exists(path + "/free_energy"):
-        os.mkdir(path + "/free_energy")
-
-    for sample in range(pop_size):
-        run_plumed_command(f"plumed sum_hills --hills {path}/HILLS/gen{last_gen}-sample{sample}-HILLS --idw phi --kt 2.5 --stride 500 --mintozero --outfile {path}/free_energy/fes{sample}_phi.dat")
+        run_plumed_command(f"plumed sum_hills --hills {path}/HILLS/gen{gen}-sample{sample}-HILLS --idw phi --kt 2.5 --stride 500 --mintozero --outfile {path}/free_energy/fes{sample}_phi.dat")
 
 
 def plot_free_energy_3d(path, pop_size):
@@ -491,6 +578,83 @@ def plot_free_energy_3d(path, pop_size):
     # plt.legend(ncol=3)
 
     plt.savefig(f'{path}/free_energy_phi.png', bbox_inches='tight')
+    plt.close()  # Close the current figure to prevent accumulation
+
+
+
+def plot_bias3d(path, gen, sample):
+      # Create a 3D plot
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    # import fes file into pandas dataset
+    data = np.loadtxt(f"{path}/free_energy/fes_gen{gen}_{sample}.dat")
+
+    phi = data[:, 0]
+    psi = data[:, 1]
+    bias = data[:, 2] * -1
+
+    # Plot the data points
+    ax.scatter(phi, psi, bias, c=bias, cmap='viridis', marker='o')
+
+    # Set labels and title
+    ax.set_xlabel('Phi')
+    ax.set_ylabel('Psi')
+    ax.set_zlabel('Bias')
+    ax.set_title('3D Plot of Phi, Psi, and Bias')
+
+    # Function to update the view angle
+    def update_view_angle(elev, azim):
+        ax.view_init(elev=elev, azim=azim)
+
+    # Create interactive sliders for elevation and azimuth
+    plt.subplots_adjust(left=0.25, bottom=0.25)
+    ax_elev = plt.axes([0.25, 0.1, 0.65, 0.03])
+    ax_azim = plt.axes([0.25, 0.15, 0.65, 0.03])
+    s_elev = plt.Slider(ax_elev, 'Elevation', -180, 180, valinit=30)
+    s_azim = plt.Slider(ax_azim, 'Azimuth', -180, 180, valinit=30)
+
+    # Define function to update plot when sliders change
+    def update(val):
+        elev = s_elev.val
+        azim = s_azim.val
+        update_view_angle(elev, azim)
+
+    # Register the update function with the sliders
+    s_elev.on_changed(update)
+    s_azim.on_changed(update)
+    plt.show()
+
+    # plt.savefig(f'free_energy_3d_compare.png', bbox_inches='tight')
+    plt.close()  # Close the current figure to prevent accumulation
+
+
+
+def plot_bias_2d(path, gen, sample):
+    # import fes file 
+    data = np.loadtxt(f"{path}/free_energy/fes_gen{gen}_{sample}.dat")
+
+    phi = data[:, 0]
+    psi = data[:, 1]
+    bias = data[:, 2] * -1
+
+    # Create a 2D contour plot
+    plt.figure(figsize=(8, 6))
+    contour = plt.tricontourf(phi, psi, bias, levels=100, cmap='viridis')
+    
+    # Add a color bar
+    plt.colorbar(contour, label='Bias')
+    
+    # Set labels and title
+    plt.xlabel('Phi')
+    plt.ylabel('Psi')
+    plt.title('2D Heatmap of Phi, Psi, and Bias')
+
+    plt.savefig(f'{path}/plots/bias_gen{gen}_sample{sample}.png', bbox_inches='tight')
+    plt.close()  # Close the current figure to prevent accumulation
+
+    
+    # plt.show()
 
 
 def plot_free_energy_2d(path, pop_size):
@@ -512,19 +676,13 @@ def plot_free_energy_2d(path, pop_size):
     # plt.legend(ncol=3)
 
     plt.savefig(f'{path}/free_energy2d.png', bbox_inches='tight')
+    plt.close()  # Close the current figure to prevent accumulation
 
 
+# OUD
 def plot_bias(colvar_file, save_path):
 
     colvar_data = np.loadtxt(colvar_file)
-    # hills_data = np.loadtxt("HILLS_compare2")
-    # begin_index = 0
-    # end_index = 25000000
-
-    # # for i, cv_label in enumerate(cvs):
-    # phi = colvar_data[:, 1][begin_index: end_index]
-    # psi = colvar_data[:, 2][begin_index: end_index]
-    # bias = colvar_data[:, 3][begin_index: end_index]
 
     # for i, cv_label in enumerate(cvs):
     phi = colvar_data[:, 1]
@@ -544,9 +702,11 @@ def plot_bias(colvar_file, save_path):
     plt.colorbar(im, label='bias')
     plt.savefig(save_path)
 
+    plt.close()  # Close the current figure to prevent accumulation
 
 
-def plot_evaluate(eval_matrix):
+
+def plot_evaluate(eval_matrix, path):
     """
     Plots each the evaluation values for each sample over the generations
 
@@ -561,24 +721,28 @@ def plot_evaluate(eval_matrix):
     plt.figure(figsize=(10, 6))
     
     for i in range(M):
-        plt.scatter(generation, eval_matrix[:, i], label=f'evaluation value sample {i+1}')
+        plt.scatter(generation, eval_matrix[:, i], label=f'sample {i+1}')
 
     avg_eval = np.mean(eval_matrix, axis=1)
     
-    plt.scatter(generation, avg_eval, label=f'average evaluation value')
+    plt.scatter(generation, avg_eval, label=f'avg')
 
-    plt.title('Scatter Plot of Vectors Over Time')
+    plt.title('Eval values')
     plt.xlabel('Generation')
     plt.ylabel('Value')
-    plt.legend()
+    # plt.legend()
     plt.grid(True)
-    plt.show()
+
+    plt.savefig(f'{path}/evaluate_values')
+
+    plt.close()  # Close the current figure to prevent accumulation
+
 
 
 if __name__ == "__main__":
 
-    number_of_gaussians = 25
-    cma_number_of_generations = 150
+    number_of_gaussians = 20
+    cma_number_of_generations = 20
     time_steps = 100000
 
     cma_upper_bound = 10
@@ -587,14 +751,22 @@ if __name__ == "__main__":
     # calculate the distance between the gaussians
     d = (2 * np.pi) / number_of_gaussians
 
-    # set width to be the distance between the gaussians
-    width = round(d*(1/(np.sqrt(8 * np.log(2)))), 3)
+    # set width 
+    # width = round(1.5 * d*(1/(np.sqrt(8 * np.log(2)))), 3)
+    width = 0.25
 
     # set cma_sigma to be 20% of the upper bound
     cma_sigma = 0.2 * cma_upper_bound
 
     test = MolSimCMA(width, number_of_gaussians, time_steps, cma_number_of_generations, cma_sigma, cma_upper_bound)
     test.CMA()
+
+    # plot_bias_2d("correct_output/cma_width0.25_n20_S2.0_B0-10_nsteps100000new_run", 19, 3)
+
+
+    # plot_bias3d("correct_output/cma_width0.25_n20_S2.0_B0-10_nsteps100000new_run", 19, 3)
+    # plot_bias3d("correct_output/cma_width0.3_n20_S2.0_B0-10_nsteps100000new_run", 19, 15)
+
 
     # plot_bias("output/cma_width0.628_n10_gens200_S2.0_B0-10_nsteps500000/COLVAR/gen23-sample2-COLVAR", "test")
 
